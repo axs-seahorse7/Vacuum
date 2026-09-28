@@ -32,4 +32,4 @@ port.DataReceived += (s, e) =>
 port.Open();
 
 Console.WriteLine("Receiver started.");
-Console.ReadLine();
+Console.ReadLine(); 

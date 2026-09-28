@@ -4,20 +4,14 @@ using var port = new SerialPort("COM3", 115200, Parity.None, 8, StopBits.One);
 
 port.Open();
 
-Console.WriteLine("LoRa transmitter started.");
-
-int sequence = 1;
+Console.WriteLine("Transmitter started.");
 
 while (true)
 {
-    string timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fff");
-    string packet = $"<PUMP001|SEQ={sequence}|TS={timestamp}>";
+    Console.Write("Send: ");
+    string message = Console.ReadLine() ?? "";
 
-    port.Write(packet);
+    port.Write(message);
 
-    Console.WriteLine($"[TX] {packet}");
-
-    sequence++;
-
-    Thread.Sleep(1000);
+    Console.WriteLine($"TX: {message}");
 }
