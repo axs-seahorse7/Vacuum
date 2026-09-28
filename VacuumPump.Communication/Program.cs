@@ -7,29 +7,33 @@ var buffer = new StringBuilder();
 
 port.DataReceived += (s, e) =>
 {
-    buffer.Append(port.ReadExisting());
+    string chunk = port.ReadExisting();
+
+    Console.WriteLine($"[CHUNK] {chunk}");
+
+    buffer.Append(chunk);
 
     while (true)
     {
-        string current = buffer.ToString();
+        string data = buffer.ToString();
 
-        int start = current.IndexOf('<');
-        int end = current.IndexOf('>', start + 1);
+        int start = data.IndexOf('<');
+        int end = data.IndexOf('>', start + 1);
 
         if (start < 0 || end < 0)
             break;
 
-        string packet = current.Substring(start, end - start + 1);
+        string packet = data.Substring(start, end - start + 1);
 
         buffer.Remove(0, end + 1);
 
-        Console.WriteLine(
-            $"[RX {DateTime.UtcNow:HH:mm:ss.fff}] {packet}"
-        );
+        Console.WriteLine($"[COMPLETE PACKET] {packet}");
     }
 };
 
 port.Open();
 
-Console.WriteLine("Receiver started.");
-Console.ReadLine(); 
+Console.WriteLine("Receiver COM6 started.");
+Console.WriteLine("Waiting for packets...");
+
+Console.ReadLine();
