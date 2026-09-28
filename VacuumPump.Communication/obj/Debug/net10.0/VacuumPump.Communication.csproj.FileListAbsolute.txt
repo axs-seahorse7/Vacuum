@@ -33,3 +33,4 @@ D:\My Projects\VacuumPumpSystem\VacuumPump.Communication\obj\Debug\net10.0\refin
 D:\My Projects\VacuumPumpSystem\VacuumPump.Communication\obj\Debug\net10.0\VacuumPump.Communication.pdb
 D:\My Projects\VacuumPumpSystem\VacuumPump.Communication\obj\Debug\net10.0\VacuumPump.Communication.genruntimeconfig.cache
 D:\My Projects\VacuumPumpSystem\VacuumPump.Communication\obj\Debug\net10.0\ref\VacuumPump.Communication.dll
+D:\My Projects\VacuumPumpSystem\VacuumPump.Communication\obj\Debug\net10.0\VacuumPump.Communication.sourcelink.json

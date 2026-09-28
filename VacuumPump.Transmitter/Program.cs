@@ -1,19 +1,23 @@
 ﻿using System.IO.Ports;
 
-using var port = new SerialPort("COM7", 115200, Parity.None, 8, StopBits.One);
+using var port = new SerialPort("COM3", 115200, Parity.None, 8, StopBits.One);
 
 port.Open();
 
-Console.WriteLine("COM7 transmitter started.");
+Console.WriteLine("LoRa transmitter started.");
+
+int sequence = 1;
 
 while (true)
 {
-    Console.Write("Message: ");
-    string? message = Console.ReadLine();
+    string timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fff");
+    string packet = $"<PUMP001|SEQ={sequence}|TS={timestamp}>";
 
-    if (string.IsNullOrEmpty(message))
-        break;
+    port.Write(packet);
 
-    port.Write(message);
-    Console.WriteLine($"[COM7 TX] {message}");
+    Console.WriteLine($"[TX] {packet}");
+
+    sequence++;
+
+    Thread.Sleep(1000);
 }
