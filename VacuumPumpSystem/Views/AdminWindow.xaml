@@ -1,0 +1,134 @@
+<Window x:Class="VacuumPumpSystem.Views.AdminWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Vacuum Pump - Admin"
+        Width="1200"
+        Height="750"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar -->
+
+        <Border Grid.Column="0"
+                Background="#F2F2F2"
+                BorderBrush="#CCCCCC"
+                BorderThickness="0,0,1,0">
+
+            <Grid>
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0"
+                            Margin="20">
+
+                    <TextBlock Text="VACUUM PUMP"
+                               FontSize="20"
+                               FontWeight="Bold"/>
+
+                    <TextBlock Text="ADMIN PANEL"
+                               FontSize="13"
+                               Margin="0,3,0,25"/>
+
+                <StackPanel Margin="0,15,0,15">
+
+                        <TextBlock Text="CURRENT LINE"
+                                FontSize="11"
+                                FontWeight="Bold"
+                                Foreground="Gray"
+                                Margin="0,0,0,5"/>
+
+                        <ComboBox x:Name="LineSelector"
+                                Height="32"
+                                SelectionChanged="LineSelector_SelectionChanged">
+
+                                <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                        <StackPanel>
+                                        <TextBlock Text="{Binding LineName}"
+                                                FontWeight="SemiBold"/>
+
+                                        <TextBlock Text="{Binding LineCode}"
+                                                FontSize="10"
+                                                Foreground="Gray"/>
+                                        </StackPanel>
+                                </DataTemplate>
+                                </ComboBox.ItemTemplate>
+
+                        </ComboBox>
+
+                </StackPanel>
+
+                    <Button Content="Dashboard"
+                            Tag="Dashboard"
+                            Click="Navigation_Click"
+                            Margin="0,3"/>
+
+                    <Button Content="Machines"
+                            Tag="Machines"
+                            Click="Navigation_Click"
+                            Margin="0,3"/>
+
+                    <Button Content="Device Discovery"
+                            Tag="DeviceDiscovery"
+                            Click="Navigation_Click"
+                            Margin="0,3"/>
+
+                    <Button Content="Lines"
+                            Tag="Lines"
+                            Click="Navigation_Click"
+                            Margin="0,3"/>
+
+                    <Button Content="Products"
+                            Tag="Products"
+                            Click="Navigation_Click"
+                            Margin="0,3"/>
+
+                    <Button Content="Mappings"
+                            Tag="Mappings"
+                            Click="Navigation_Click"
+                            Margin="0,3"/>
+
+                    <Button Content="Users"
+                            Tag="Users"
+                            Click="Navigation_Click"
+                            Margin="0,3"/>
+
+                    <Button Content="Settings"
+                            Tag="Settings"
+                            Click="Navigation_Click"
+                            Margin="0,3"/>
+
+                </StackPanel>
+
+                <Button Grid.Row="2"
+                        Content="LOGOUT"
+                        Margin="20"
+                        Height="35"
+                        Click="Logout_Click"/>
+
+            </Grid>
+
+        </Border>
+
+        <!-- Main Content -->
+
+        <Grid Grid.Column="1"
+              Background="White">
+
+            <ContentControl x:Name="MainContent"/>
+
+        </Grid>
+
+    </Grid>
+
+</Window>

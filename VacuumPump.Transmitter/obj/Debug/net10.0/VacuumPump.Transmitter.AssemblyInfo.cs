@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VacuumPump.Transmitter")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+29bedc20709b9fe72e26eb73a74930209f949553")]
 [assembly: System.Reflection.AssemblyProductAttribute("VacuumPump.Transmitter")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VacuumPump.Transmitter")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

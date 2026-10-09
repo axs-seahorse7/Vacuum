@@ -33,3 +33,4 @@ D:\My Projects\VacuumPumpSystem\VacuumPump.Transmitter\obj\Debug\net10.0\refint\
 D:\My Projects\VacuumPumpSystem\VacuumPump.Transmitter\obj\Debug\net10.0\VacuumPump.Transmitter.pdb
 D:\My Projects\VacuumPumpSystem\VacuumPump.Transmitter\obj\Debug\net10.0\VacuumPump.Transmitter.genruntimeconfig.cache
 D:\My Projects\VacuumPumpSystem\VacuumPump.Transmitter\obj\Debug\net10.0\ref\VacuumPump.Transmitter.dll
+D:\My Projects\VacuumPumpSystem\vacuumpump.transmitter\obj\Debug\net10.0\VacuumPump.Transmitter.sourcelink.json

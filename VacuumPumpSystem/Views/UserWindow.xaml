@@ -1,0 +1,103 @@
+<Window x:Class="VacuumPumpSystem.Views.UserWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Vacuum Pump System"
+        Width="1100"
+        Height="700"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid Margin="25">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+
+        <StackPanel Grid.Row="0">
+
+            <TextBlock Text="VACUUM PUMP SYSTEM"
+                       FontSize="28"
+                       FontWeight="Bold"/>
+
+            <TextBlock x:Name="UserInfoText"
+                       Foreground="Gray"
+                       Margin="0,5,0,0"/>
+
+        </StackPanel>
+
+        <!-- Line -->
+
+        <Grid Grid.Row="1"
+              Margin="0,25,0,20">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150"/>
+                <ColumnDefinition Width="350"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="Production Line:"
+                       VerticalAlignment="Center"
+                       FontWeight="SemiBold"/>
+
+            <ComboBox x:Name="LineSelector"
+                      Grid.Column="1"
+                      Height="35"
+                      DisplayMemberPath="LineName"
+                      SelectionChanged="LineSelector_SelectionChanged"/>
+
+            
+
+
+            <TextBlock x:Name="ConnectionStatusText"
+                       Grid.Column="2"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Right"
+                       Foreground="Gray"/>
+
+        </Grid>
+
+        <!-- Registered Machines -->
+
+        <DataGrid x:Name="MachinesGrid"
+                  Grid.Row="2"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  CanUserAddRows="False">
+
+            <DataGrid.Columns>
+
+                <DataGridTextColumn Header="Modbus"
+                                    Binding="{Binding ModbusAddress}"
+                                    Width="80"/>
+
+                <DataGridTextColumn Header="Dummy"
+                                    Binding="{Binding DummyCode}"
+                                    Width="100"/>
+
+                <DataGridTextColumn Header="Machine"
+                                    Binding="{Binding MachineName}"
+                                    Width="*"/>
+
+                <DataGridTextColumn Header="Pressure (mbar)"
+                                    Binding="{Binding Pressure, StringFormat=F3}"
+                                    Width="140"/>
+
+                <DataGridTextColumn Header="Status"
+                                    Binding="{Binding Status}"
+                                    Width="110"/>
+
+                <DataGridTextColumn Header="Last Seen"
+                                    Binding="{Binding LastSeen}"
+                                    Width="180"/>
+
+            </DataGrid.Columns>
+
+        </DataGrid>
+
+    </Grid>
+
+</Window>

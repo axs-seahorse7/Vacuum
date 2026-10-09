@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "MU4azBOdv50=",
+  "dgSpecHash": "kbb1eMULpzc=",
   "success": true,
-  "projectFilePath": "D:\\My Projects\\VacuumPumpSystem\\VacuumPump.Transmitter\\VacuumPump.Transmitter.csproj",
+  "projectFilePath": "D:\\My Projects\\VacuumPumpSystem\\vacuumpump.transmitter\\VacuumPump.Transmitter.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Palash Gadhave\\.nuget\\packages\\runtime.android-arm.runtime.native.system.io.ports\\10.0.12\\runtime.android-arm.runtime.native.system.io.ports.10.0.12.nupkg.sha512",
     "C:\\Users\\Palash Gadhave\\.nuget\\packages\\runtime.android-arm64.runtime.native.system.io.ports\\10.0.12\\runtime.android-arm64.runtime.native.system.io.ports.10.0.12.nupkg.sha512",
