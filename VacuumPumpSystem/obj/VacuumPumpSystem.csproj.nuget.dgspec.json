@@ -1,7 +1,7 @@
 {
   "format": 1,
   "restore": {
-    "D:\\My Projects\\VacuumPumpSystem\\vacuumpumpsystem\\VacuumPumpSystem.csproj": {}
+    "D:\\My Projects\\VacuumPumpSystem\\vacuumpumpSystem\\VacuumPumpSystem.csproj": {}
   },
   "projects": {
     "D:\\My Projects\\VacuumPumpSystem\\VacuumPump.Communication\\VacuumPump.Communication.csproj": {
@@ -345,14 +345,14 @@
         }
       }
     },
-    "D:\\My Projects\\VacuumPumpSystem\\vacuumpumpsystem\\VacuumPumpSystem.csproj": {
+    "D:\\My Projects\\VacuumPumpSystem\\vacuumpumpSystem\\VacuumPumpSystem.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\My Projects\\VacuumPumpSystem\\vacuumpumpsystem\\VacuumPumpSystem.csproj",
+        "projectUniqueName": "D:\\My Projects\\VacuumPumpSystem\\vacuumpumpSystem\\VacuumPumpSystem.csproj",
         "projectName": "VacuumPumpSystem",
-        "projectPath": "D:\\My Projects\\VacuumPumpSystem\\vacuumpumpsystem\\VacuumPumpSystem.csproj",
+        "projectPath": "D:\\My Projects\\VacuumPumpSystem\\vacuumpumpSystem\\VacuumPumpSystem.csproj",
         "packagesPath": "C:\\Users\\Palash Gadhave\\.nuget\\packages\\",
-        "outputPath": "D:\\My Projects\\VacuumPumpSystem\\vacuumpumpsystem\\obj\\",
+        "outputPath": "D:\\My Projects\\VacuumPumpSystem\\vacuumpumpSystem\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Palash Gadhave\\AppData\\Roaming\\NuGet\\NuGet.Config"

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\My Projects\\VacuumPumpSystem\\vacuumpump.transmitter\\VacuumPump.Transmitter.csproj": {}
+    "D:\\My Projects\\VacuumPumpSystem\\vacuumpump.Transmitter\\VacuumPump.Transmitter.csproj": {}
   },
   "projects": {
-    "D:\\My Projects\\VacuumPumpSystem\\vacuumpump.transmitter\\VacuumPump.Transmitter.csproj": {
+    "D:\\My Projects\\VacuumPumpSystem\\vacuumpump.Transmitter\\VacuumPump.Transmitter.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\My Projects\\VacuumPumpSystem\\vacuumpump.transmitter\\VacuumPump.Transmitter.csproj",
+        "projectUniqueName": "D:\\My Projects\\VacuumPumpSystem\\vacuumpump.Transmitter\\VacuumPump.Transmitter.csproj",
         "projectName": "VacuumPump.Transmitter",
-        "projectPath": "D:\\My Projects\\VacuumPumpSystem\\vacuumpump.transmitter\\VacuumPump.Transmitter.csproj",
+        "projectPath": "D:\\My Projects\\VacuumPumpSystem\\vacuumpump.Transmitter\\VacuumPump.Transmitter.csproj",
         "packagesPath": "C:\\Users\\Palash Gadhave\\.nuget\\packages\\",
-        "outputPath": "D:\\My Projects\\VacuumPumpSystem\\vacuumpump.transmitter\\obj\\",
+        "outputPath": "D:\\My Projects\\VacuumPumpSystem\\vacuumpump.Transmitter\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Palash Gadhave\\AppData\\Roaming\\NuGet\\NuGet.Config"

@@ -1,0 +1,16 @@
+# Build output
+**/bin/
+**/obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Logs
+*.log
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
