@@ -1,0 +1,42 @@
+﻿
+using System;
+using System.IO.Ports;
+using System.Threading;
+
+try
+{
+    using var port = new SerialPort(
+        "COM7",
+        115200,
+        Parity.None,
+        8,
+        StopBits.One);
+
+    port.ReadTimeout = 500;
+    port.Open();
+
+    Console.WriteLine($"Listening on {port.PortName} at 115200...");
+    Console.WriteLine("Start the transmitter on COM6 and send option 3.");
+    Console.WriteLine("Press Ctrl+C to stop.");
+
+    while (true)
+    {
+        int count = port.BytesToRead;
+
+        if (count > 0)
+        {
+            byte[] data = new byte[count];
+            int read = port.Read(data, 0, count);
+
+            Console.WriteLine(
+                $"{DateTime.Now:HH:mm:ss.fff} RX ({read} bytes): " +
+                BitConverter.ToString(data, 0, read));
+        }
+
+        Thread.Sleep(20);
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"{ex.GetType().Name}: {ex.Message}");
+}

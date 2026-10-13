@@ -1,103 +1,218 @@
+
 <Window x:Class="VacuumPumpSystem.Views.UserWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Vacuum Pump System"
-        Width="1100"
-        Height="700"
+        Width="1400"
+        Height="850"
+        MinWidth="1100"
+        MinHeight="650"
         WindowStartupLocation="CenterScreen">
 
-    <Grid Margin="25">
-
+    <Grid Margin="20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- Header -->
-
-        <StackPanel Grid.Row="0">
-
-            <TextBlock Text="VACUUM PUMP SYSTEM"
-                       FontSize="28"
-                       FontWeight="Bold"/>
-
-            <TextBlock x:Name="UserInfoText"
-                       Foreground="Gray"
-                       Margin="0,5,0,0"/>
-
-        </StackPanel>
-
-        <!-- Line -->
-
-        <Grid Grid.Row="1"
-              Margin="0,25,0,20">
-
+        <Grid Grid.Row="0" Margin="0,0,0,18">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="150"/>
-                <ColumnDefinition Width="350"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <TextBlock Text="Production Line:"
-                       VerticalAlignment="Center"
-                       FontWeight="SemiBold"/>
+            <StackPanel>
+                <TextBlock Text="VACUUM PUMP SYSTEM"
+                           FontSize="26"
+                           FontWeight="Bold"/>
 
-            <ComboBox x:Name="LineSelector"
-                      Grid.Column="1"
-                      Height="35"
-                      DisplayMemberPath="LineName"
-                      SelectionChanged="LineSelector_SelectionChanged"/>
+                <TextBlock x:Name="UserInfoText"
+                           Foreground="Gray"
+                           Margin="0,5,0,12"/>
 
-            
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Production Line:"
+                               VerticalAlignment="Center"
+                               FontWeight="SemiBold"
+                               Margin="0,0,12,0"/>
 
+                    <ComboBox x:Name="LineSelector"
+                              Width="240"
+                              Height="34"
+                              DisplayMemberPath="LineName"
+                              SelectionChanged="LineSelector_SelectionChanged"/>
+                </StackPanel>
+            </StackPanel>
 
             <TextBlock x:Name="ConnectionStatusText"
-                       Grid.Column="2"
+                       Grid.Column="1"
                        VerticalAlignment="Center"
                        HorizontalAlignment="Right"
-                       Foreground="Gray"/>
-
+                       Foreground="Gray"
+                       Margin="12,0,0,0"/>
         </Grid>
 
-        <!-- Registered Machines -->
+        <!-- Main 70/30 layout -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="7*"/>
+                <ColumnDefinition Width="3*"/>
+            </Grid.ColumnDefinitions>
 
-        <DataGrid x:Name="MachinesGrid"
-                  Grid.Row="2"
-                  AutoGenerateColumns="False"
-                  IsReadOnly="True"
-                  CanUserAddRows="False">
+            <!-- LEFT: Machine grid (70%) -->
+            <Border Grid.Column="0"
+                    BorderBrush="#D9DEE7"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="12"
+                    Margin="0,0,12,0">
 
-            <DataGrid.Columns>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-                <DataGridTextColumn Header="Modbus"
-                                    Binding="{Binding ModbusAddress}"
-                                    Width="80"/>
+                    <TextBlock Text="Production Machines"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,12"/>
 
-                <DataGridTextColumn Header="Dummy"
-                                    Binding="{Binding DummyCode}"
-                                    Width="100"/>
+                    <DataGrid x:Name="MachinesGrid"
+                              Grid.Row="1"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="Horizontal">
 
-                <DataGridTextColumn Header="Machine"
-                                    Binding="{Binding MachineName}"
-                                    Width="*"/>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Dummy"
+                                                Binding="{Binding DummyCode}"
+                                                Width="85"/>
 
-                <DataGridTextColumn Header="Pressure (mbar)"
-                                    Binding="{Binding Pressure, StringFormat=F3}"
-                                    Width="140"/>
+                            <DataGridTextColumn Header="Machine"
+                                                Binding="{Binding MachineName}"
+                                                Width="*"/>
 
-                <DataGridTextColumn Header="Status"
-                                    Binding="{Binding Status}"
-                                    Width="110"/>
+                            <DataGridTextColumn Header="Pressure (mbar)"
+                                                Binding="{Binding Pressure, StringFormat=F3}"
+                                                Width="115"/>
 
-                <DataGridTextColumn Header="Last Seen"
-                                    Binding="{Binding LastSeen}"
-                                    Width="180"/>
+                            <DataGridTextColumn Header="Status"
+                                                Binding="{Binding Status}"
+                                                Width="85"/>
 
-            </DataGrid.Columns>
+                            <DataGridTextColumn Header="Last Seen"
+                                                Binding="{Binding LastSeen, StringFormat=HH:mm:ss}"
+                                                Width="90"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
 
-        </DataGrid>
+            <!-- RIGHT: Scanning and last 10 scans (30%) -->
+            <Border Grid.Column="1"
+                    BorderBrush="#D9DEE7"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="14">
 
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Record Pressure Test"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,18"/>
+
+                    <StackPanel Grid.Row="1" Margin="0,0,0,14">
+                        <TextBlock Text="1. Scan Dummy QR"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,7"/>
+
+                        <TextBox x:Name="ScanDummyTextBox"
+                                 Height="38"
+                                 FontSize="15"
+                                 Padding="8"
+                                 VerticalContentAlignment="Center"
+                                 ToolTip="Scan the machine Dummy QR code"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="2" Margin="0,0,0,14">
+                        <TextBlock Text="2. Scan Product Serial Number"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,7"/>
+
+                        <TextBox x:Name="ScanSerialTextBox"
+                                 Height="38"
+                                 FontSize="15"
+                                 Padding="8"
+                                 VerticalContentAlignment="Center"
+                                 ToolTip="Scan the product barcode or QR code"/>
+                    </StackPanel>
+
+                    <Button x:Name="RecordScanButton"
+                            Grid.Row="3"
+                            Content="RECORD PRESSURE TEST"
+                            Height="42"
+                            FontWeight="SemiBold"
+                            Click="RecordScanButton_Click"/>
+
+                    <TextBlock x:Name="ScanStatusText"
+                               Grid.Row="4"
+                               Margin="0,10,0,14"
+                               TextWrapping="Wrap"
+                               Foreground="Gray"/>
+
+                    <Grid Grid.Row="5">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Last 10 Scans"
+                                   FontSize="17"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,10"/>
+
+                        <DataGrid x:Name="RecentScansGrid"
+                                  Grid.Row="1"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  CanUserAddRows="False"
+                                  HeadersVisibility="Column"
+                                  GridLinesVisibility="Horizontal">
+
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Product"
+                                                    Binding="{Binding ProductSerialNo}"
+                                                    Width="*"/>
+
+                                <DataGridTextColumn Header="Dummy"
+                                                    Binding="{Binding DummyCode}"
+                                                    Width="65"/>
+
+                                <DataGridTextColumn Header="Pressure"
+                                                    Binding="{Binding PressureValue, StringFormat=F3}"
+                                                    Width="75"/>
+
+                                <DataGridTextColumn Header="Time"
+                                                    Binding="{Binding TestedAt, StringFormat=HH:mm:ss}"
+                                                    Width="75"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
-
 </Window>

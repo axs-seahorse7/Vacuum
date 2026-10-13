@@ -105,12 +105,7 @@ public class UserService
         return lines;
     }
     
-    
-    public async Task<int> CreateUserAsync(
-        string username,
-        string password,
-        string role,
-        List<int> lineIds)
+    public async Task<int> CreateUserAsync(string username, string password, string role, List<int> lineIds)
     {
         await using var connection = new MySqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -262,8 +257,7 @@ public class UserService
     {
         var lines = new List<ProductionLine>();
 
-        await using var connection =
-            new MySqlConnection(_connectionString);
+        await using var connection = new MySqlConnection(_connectionString);
 
         await connection.OpenAsync();
 
@@ -272,6 +266,7 @@ public class UserService
                 pl.id,
                 pl.line_code,
                 pl.line_name,
+                pl.lora_channel,
                 pl.description,
                 pl.is_active,
                 pl.created_at
@@ -283,13 +278,10 @@ public class UserService
             ORDER BY pl.line_name;
             """;
 
-        await using var command =
-            new MySqlCommand(sql, connection);
-
+        await using var command = new MySqlCommand(sql, connection);
         command.Parameters.AddWithValue("@userId", userId);
 
-        await using var reader =
-            await command.ExecuteReaderAsync();
+        await using var reader = await command.ExecuteReaderAsync();
 
         while (await reader.ReadAsync())
         {
@@ -298,10 +290,8 @@ public class UserService
                 Id = reader.GetInt32("id"),
                 LineCode = reader.GetString("line_code"),
                 LineName = reader.GetString("line_name"),
-                Description = reader.IsDBNull(
-                    reader.GetOrdinal("description"))
-                    ? null
-                    : reader.GetString("description"),
+                LoraChannel = reader.IsDBNull(reader.GetOrdinal("lora_channel"))? null : reader.GetInt32("lora_channel"),
+                Description = reader.IsDBNull(reader.GetOrdinal("description"))? null : reader.GetString("description"),
                 IsActive = reader.GetBoolean("is_active"),
                 CreatedAt = reader.GetDateTime("created_at")
             });

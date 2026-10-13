@@ -1,3 +1,5 @@
+using System.IO;
+using System.Windows;
 using System.IO.Ports;
 using VacuumPump.Communication.Models;
 
@@ -65,9 +67,19 @@ public class ModbusReceiver : IDisposable
 
     public void Start()
     {
-        if (!_port.IsOpen)
+        Log($"Start requested. Port={_port.PortName}");
+
+        try
         {
-            _port.Open();
+            if (!_port.IsOpen)
+                _port.Open();
+
+            Log($"SUCCESS: Port {_port.PortName} opened. IsOpen={_port.IsOpen}");
+        }
+        catch (Exception ex)
+        {
+            Log($"START ERROR: {ex}");
+            throw;
         }
     }
 
@@ -83,38 +95,36 @@ public class ModbusReceiver : IDisposable
     // RECEIVE DATA
     // ============================================================
 
-    private void OnDataReceived(
-        object sender,
-        SerialDataReceivedEventArgs e)
+    
+   private void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
     {
+        Log($"DATA EVENT FIRED on {_port.PortName}");
+
         try
         {
             int count = _port.BytesToRead;
+            Log($"Bytes available: {count}");
 
             if (count <= 0)
                 return;
 
             byte[] data = new byte[count];
+            int bytesRead = _port.Read(data, 0, count);
 
-            _port.Read(data, 0, count);
-
-            Console.WriteLine($"RAW RX ({_port.PortName}): {BitConverter.ToString(data)}");
+            Log($"RAW RX ({bytesRead} bytes): " +
+                $"{BitConverter.ToString(data, 0, bytesRead)}");
 
             lock (_buffer)
             {
                 _buffer.AddRange(data);
-
                 ProcessBuffer();
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine(
-                $"Modbus receive error: {ex.Message}"
-            );
+            Log($"RECEIVE ERROR: {ex}");
         }
     }
-
     // ============================================================
     // MODBUS FRAME PARSER
     // ============================================================
@@ -167,6 +177,9 @@ public class ModbusReceiver : IDisposable
             {
                 _buffer.RemoveAt(0);
                 continue;
+            }else
+            {
+                Log($"VALID FRAME: Address={slaveId}, Bytes={BitConverter.ToString(frame)}");
             }
 
             // ====================================================
@@ -307,4 +320,70 @@ public class ModbusReceiver : IDisposable
 
         _port.Dispose();
     }
+
+
+    
+    private readonly string _logPath = Path.Combine(
+        Environment.GetFolderPath(
+            Environment.SpecialFolder.LocalApplicationData),
+        "VacuumPumpSystem",
+        "modbus-rx.log");
+
+    private void Log(string message)
+    {
+        try
+        {
+            string? directory = Path.GetDirectoryName(_logPath);
+
+            if (directory != null)
+                Directory.CreateDirectory(directory);
+
+            File.AppendAllText(
+                _logPath,
+                $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} " +
+                $"{message}{Environment.NewLine}");
+        }
+        catch
+        {
+            // Prevent diagnostic logging errors from breaking reception.
+        }
+    }
+
+
+    
+    public async Task RunReceiveDiagnosticAsync(CancellationToken cancellationToken = default)
+    {
+        Log($"POLL TEST STARTED on {_port.PortName}");
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                if (!_port.IsOpen)
+                {
+                    Log("ERROR: Serial port is closed.");
+                    return;
+                }
+
+                int count = _port.BytesToRead;
+
+                if (count > 0)
+                {
+                    byte[] data = new byte[count];
+                    int bytesRead = _port.Read(data, 0, count);
+
+                    Log($"POLL RX ({bytesRead} bytes): " +
+                        BitConverter.ToString(data, 0, bytesRead));
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"POLL ERROR: {ex}");
+                return;
+            }
+
+            await Task.Delay(200, cancellationToken);
+        }
+    }
+
 }

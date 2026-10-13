@@ -1,0 +1,120 @@
+
+using System;
+using System.IO;
+using System.IO.Ports;
+using System.Text;
+using System.Threading;
+
+const string portName = "COM7"; // Change to COM7 for the other test module
+const int baudRate = 115200;
+const string targetChannel = "66";
+
+string logDir = Path.Combine(
+    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+    "VacuumPumpSystem");
+
+Directory.CreateDirectory(logDir);
+string logPath = Path.Combine(logDir, "lora-config.log");
+
+void Log(string message)
+{
+    string line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {message}";
+    Console.WriteLine(line);
+    File.AppendAllText(logPath, line + Environment.NewLine);
+}
+
+string ReadAvailable(SerialPort port, int waitMs = 500)
+{
+    var result = new StringBuilder();
+    var until = DateTime.UtcNow.AddMilliseconds(waitMs);
+
+    while (DateTime.UtcNow < until)
+    {
+        if (port.BytesToRead > 0)
+            result.Append(port.ReadExisting());
+
+        Thread.Sleep(10);
+    }
+
+    return result.ToString();
+}
+
+try
+{
+    using var port = new SerialPort(
+        portName, baudRate, Parity.None, 8, StopBits.One)
+    {
+        ReadTimeout = 500,
+        WriteTimeout = 500,
+        Encoding = Encoding.ASCII,
+        DtrEnable = false,
+        RtsEnable = false
+    };
+
+    port.Open();
+    Log($"Opened {portName} at {baudRate}, 8-N-1.");
+
+    Log("Waiting 3 seconds for serial input to settle...");
+    Thread.Sleep(3000);
+
+    // Clear only the local serial receive buffer.
+    port.DiscardInBuffer();
+
+    Log("Starting configuration handshake. Sending +++");
+    port.Write("+++");
+
+    string first = ReadAvailable(port, 500);
+    Log($"Handshake response: [{first}]");
+
+    if (!first.Contains('a'))
+    {
+        Log("STOP: Expected handshake response 'a'. No AT commands sent.");
+        return;
+    }
+
+    // The module expects 'a' promptly after its 'a' response.
+    Log("Sending handshake confirmation: a");
+    port.Write("a");
+
+    string second = ReadAvailable(port, 700);
+    Log($"Configuration response: [{second}]");
+
+    if (!second.Contains("+OK"))
+    {
+        Log("STOP: Did not receive +OK. No channel changes attempted.");
+        return;
+    }
+
+    Log("Configuration mode confirmed.");
+
+    port.Write("AT+CH=66\r\n");
+    string setResponse = ReadAvailable(port, 700);
+    Log($"Set channel response: [{setResponse}]");
+
+    if (!setResponse.Contains("OK"))
+    {
+        Log("STOP: Channel change was not confirmed. Not saving.");
+        return;
+    }
+
+    port.Write("AT+CFGTF\r\n");
+    string saveResponse = ReadAvailable(port, 700);
+    Log($"Save response: [{saveResponse}]");
+
+    port.Write("AT+CH\r\n");
+    string verifyResponse = ReadAvailable(port, 700);
+    Log($"Channel verification: [{verifyResponse}]");
+
+    if (verifyResponse.Contains("+CH:66"))
+        Log("SUCCESS: Module reports channel 66.");
+    else
+        Log("WARNING: Channel 66 not confirmed. Inspect the log before retrying.");
+}
+catch (Exception ex)
+{
+    Log($"ERROR: {ex.GetType().Name}: {ex.Message}");
+}
+
+Console.WriteLine($"\nLog file: {logPath}");
+Console.WriteLine("Press Enter to exit.");
+Console.ReadLine();

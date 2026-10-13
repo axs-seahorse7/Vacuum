@@ -95,9 +95,7 @@ public partial class DeviceDiscoveryView : UserControl
             
             var configurator = new LoRaConfigurationService();
 
-            bool configured = await configurator.ConfigureChannelAsync(
-                selectedPort,
-                _loraChannel.Value);
+            bool configured = await configurator.ConfigureChannelAsync(selectedPort, _loraChannel.Value);
 
             if (!configured)
                 return;
@@ -110,6 +108,7 @@ public partial class DeviceDiscoveryView : UserControl
 
             // Discover valid Modbus responses on the configured LoRa channel.
             _receiver.Start();
+
 
             MessageBox.Show(
                 $"Receiver {selectedPort} configured successfully to CH{_loraChannel}.\n\n" +

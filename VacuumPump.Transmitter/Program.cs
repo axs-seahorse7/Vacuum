@@ -2,11 +2,11 @@
 using System.IO.Ports;
 using System.Threading;
 
-using var port = new SerialPort("COM7", 115200, Parity.None, 8, StopBits.One);
+using var port = new SerialPort("COM6", 115200, Parity.None, 8, StopBits.One);
 
 port.Open();
 
-Console.WriteLine("Modbus Transmitter COM7 started.");
+Console.WriteLine($"Actual serial port: {port.PortName}");
 Console.WriteLine("Radio channel must already be configured on the LG206.");
 
 while (true)
