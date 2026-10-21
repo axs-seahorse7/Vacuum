@@ -1,3 +1,4 @@
+
 namespace VacuumPump.Communication.Models;
 
 public class ModbusDeviceData
@@ -18,4 +19,5 @@ public class ModbusDeviceData
 
     public string? MachineName { get; init; }
 
+    public bool? IsPressureWithinLimit { get; init; }
 }

@@ -96,9 +96,31 @@
                                                 Binding="{Binding MachineName}"
                                                 Width="*"/>
 
+                            
                             <DataGridTextColumn Header="Pressure (mbar)"
                                                 Binding="{Binding Pressure, StringFormat=F3}"
-                                                Width="115"/>
+                                                Width="115">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Padding" Value="5,4"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsPressureWithinLimit}"
+                                                        Value="True">
+                                                <Setter Property="Background" Value="#D1FAE5"/>
+                                                <Setter Property="Foreground" Value="#065F46"/>
+                                            </DataTrigger>
+
+                                            <DataTrigger Binding="{Binding IsPressureWithinLimit}"
+                                                        Value="False">
+                                                <Setter Property="Background" Value="#FEE2E2"/>
+                                                <Setter Property="Foreground" Value="#991B1B"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
 
                             <DataGridTextColumn Header="Status"
                                                 Binding="{Binding Status}"
@@ -140,6 +162,7 @@
                                    Margin="0,0,0,7"/>
 
                         <TextBox x:Name="ScanDummyTextBox"
+                                 PreviewKeyDown="ScanDummyTextBox_PreviewKeyDown"
                                  Height="38"
                                  FontSize="15"
                                  Padding="8"
@@ -153,6 +176,7 @@
                                    Margin="0,0,0,7"/>
 
                         <TextBox x:Name="ScanSerialTextBox"
+                                 PreviewKeyDown="ScanSerialTextBox_PreviewKeyDown"
                                  Height="38"
                                  FontSize="15"
                                  Padding="8"
@@ -161,11 +185,10 @@
                     </StackPanel>
 
                     <Button x:Name="RecordScanButton"
-                            Grid.Row="3"
-                            Content="RECORD PRESSURE TEST"
-                            Height="42"
-                            FontWeight="SemiBold"
-                            Click="RecordScanButton_Click"/>
+                                Grid.Row="3"
+                                Content="RECORD PRESSURE TEST"
+                                Height="42"
+                                FontWeight="SemiBold"/>
 
                     <TextBlock x:Name="ScanStatusText"
                                Grid.Row="4"

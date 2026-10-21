@@ -1,6 +1,9 @@
+
+using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Windows;
 using System.IO.Ports;
+using System.Linq;
 using VacuumPump.Communication.Models;
 
 namespace VacuumPump.Communication.Services;
@@ -9,10 +12,19 @@ public class ModbusReceiver : IDisposable
 {
     private readonly SerialPort _port;
     private readonly List<byte> _buffer = new();
-
+    private readonly object _bufferLock = new();
+    private readonly object _allowedAddressesLock = new();
     private readonly HashSet<byte> _allowedAddresses = new();
 
-    private readonly object _allowedAddressesLock = new();
+    private readonly string _logPath = Path.Combine(
+        Environment.GetFolderPath(
+            Environment.SpecialFolder.LocalApplicationData),
+        "VacuumPumpSystem",
+        "modbus-rx.log");
+
+    // Keep the existing pressure scaling for comparison.
+    // Confirm this against the production register documentation.
+    public double PressureScaleDivisor { get; set; } = 1000.0;
 
     public event Action<ModbusDeviceData>? DeviceDataReceived;
 
@@ -25,15 +37,13 @@ public class ModbusReceiver : IDisposable
             baudRate,
             Parity.None,
             8,
-            StopBits.One
-        );
+            StopBits.One)
+        {
+            ReadTimeout = 1000
+        };
 
         _port.DataReceived += OnDataReceived;
     }
-
-    // ============================================================
-    // REGISTERED MODBUS FILTER
-    // ============================================================
 
     public void SetAllowedAddresses(IEnumerable<byte> addresses)
     {
@@ -43,291 +53,294 @@ public class ModbusReceiver : IDisposable
 
             foreach (byte address in addresses)
             {
-                _allowedAddresses.Add(address);
+                if (address is >= 1 and <= 247)
+                    _allowedAddresses.Add(address);
             }
         }
     }
 
-   private bool IsAddressAllowed(byte address)
+    private bool IsAddressAllowed(byte address)
     {
         lock (_allowedAddressesLock)
         {
-            // Empty list means NO FILTER.
-            // This is required for Device Discovery.
-            if (_allowedAddresses.Count == 0)
-                return true;
-
-            return _allowedAddresses.Contains(address);
+            // Empty filter allows all addresses during discovery.
+            return _allowedAddresses.Count == 0 ||
+                   _allowedAddresses.Contains(address);
         }
     }
 
-    // ============================================================
-    // SERIAL PORT
-    // ============================================================
-
     public void Start()
     {
-        Log($"Start requested. Port={_port.PortName}");
+        Log($"START requested. Port={_port.PortName}");
 
-        try
-        {
-            if (!_port.IsOpen)
-                _port.Open();
+        if (_port.IsOpen)
+            return;
 
-            Log($"SUCCESS: Port {_port.PortName} opened. IsOpen={_port.IsOpen}");
-        }
-        catch (Exception ex)
-        {
-            Log($"START ERROR: {ex}");
-            throw;
-        }
+        _port.Open();
+        _port.DiscardInBuffer();
+
+        lock (_bufferLock)
+            _buffer.Clear();
+
+        Log($"PORT OPEN. Port={_port.PortName}, " +
+            $"Baud={_port.BaudRate}, Format=8N1");
     }
 
     public void Stop()
     {
         if (_port.IsOpen)
-        {
             _port.Close();
-        }
+
+        lock (_bufferLock)
+            _buffer.Clear();
+
+        Log("PORT STOPPED.");
     }
 
-    // ============================================================
-    // RECEIVE DATA
-    // ============================================================
-
-    
-   private void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
+    private void OnDataReceived(
+        object? sender,
+        SerialDataReceivedEventArgs e)
     {
-        Log($"DATA EVENT FIRED on {_port.PortName}");
-
         try
         {
-            int count = _port.BytesToRead;
-            Log($"Bytes available: {count}");
-
-            if (count <= 0)
-                return;
-
-            byte[] data = new byte[count];
-            int bytesRead = _port.Read(data, 0, count);
-
-            Log($"RAW RX ({bytesRead} bytes): " +
-                $"{BitConverter.ToString(data, 0, bytesRead)}");
-
-            lock (_buffer)
+            while (_port.IsOpen && _port.BytesToRead > 0)
             {
-                _buffer.AddRange(data);
-                ProcessBuffer();
+                int count = _port.BytesToRead;
+
+                if (count <= 0)
+                    break;
+
+                byte[] data = new byte[count];
+                int bytesRead = _port.Read(data, 0, count);
+
+                if (bytesRead <= 0)
+                    break;
+
+                lock (_bufferLock)
+                {
+                    _buffer.AddRange(data.Take(bytesRead));
+                    ProcessBuffer();
+                }
             }
         }
         catch (Exception ex)
         {
-            Log($"RECEIVE ERROR: {ex}");
+            Log($"RX ERROR: {ex.Message}");
         }
     }
-    // ============================================================
-    // MODBUS FRAME PARSER
-    // ============================================================
 
     private void ProcessBuffer()
     {
-        while (_buffer.Count >= 9)
+        while (_buffer.Count >= 5)
         {
-            int start = FindResponseStart();
+            int start = FindValidFrameStart();
 
             if (start < 0)
             {
+                // Retain enough trailing bytes for a fragmented frame.
                 if (_buffer.Count > 8)
-                {
-                    _buffer.RemoveRange(
-                        0,
-                        _buffer.Count - 8
-                    );
-                }
+                    _buffer.RemoveRange(0, _buffer.Count - 8);
 
                 return;
             }
 
             if (start > 0)
-            {
                 _buffer.RemoveRange(0, start);
-            }
 
-            if (_buffer.Count < 9)
+            if (_buffer.Count < 2)
                 return;
 
             byte slaveId = _buffer[0];
-
             byte function = _buffer[1];
+
+            // Modbus exception response: address, function|0x80,
+            // exception code, CRC low, CRC high.
+            if (function == 0x83)
+            {
+                if (_buffer.Count < 5)
+                    return;
+
+                byte[] exceptionFrame = _buffer.Take(5).ToArray();
+
+                if (!ValidateCrc(exceptionFrame))
+                {
+                    _buffer.RemoveAt(0);
+                    continue;
+                }
+
+                Log($"MODBUS EXCEPTION: Slave={slaveId}, " +
+                    $"Code=0x{exceptionFrame[2]:X2}, " +
+                    $"Frame={Hex(exceptionFrame)}");
+
+                _buffer.RemoveRange(0, 5);
+                continue;
+            }
+
+            if (function != 0x03)
+            {
+                _buffer.RemoveAt(0);
+                continue;
+            }
+
+            if (_buffer.Count < 3)
+                return;
 
             byte byteCount = _buffer[2];
 
-            if (function != 0x03 ||
-                byteCount != 0x04)
+            // Current observed production samples contain 2 data bytes.
+            // Preserve support for the previous 4-byte response format.
+            if (byteCount is not (2 or 4))
             {
                 _buffer.RemoveAt(0);
                 continue;
             }
 
-            byte[] frame = _buffer
-                .Take(9)
-                .ToArray();
+            // Address + function + byte count + data + CRC.
+            int frameLength = 3 + byteCount + 2;
+
+            if (_buffer.Count < frameLength)
+                return;
+
+            byte[] frame = _buffer.Take(frameLength).ToArray();
 
             if (!ValidateCrc(frame))
             {
+                Log($"CRC INVALID: {Hex(frame)}");
                 _buffer.RemoveAt(0);
                 continue;
-            }else
-            {
-                Log($"VALID FRAME: Address={slaveId}, Bytes={BitConverter.ToString(frame)}");
             }
 
-            // ====================================================
-            // IMPORTANT:
-            // Frame is valid.
-            // Now check whether this Modbus address is registered.
-            // ====================================================
+            _buffer.RemoveRange(0, frameLength);
+
+            uint rawValue = 0;
+
+            for (int i = 0; i < byteCount; i++)
+                rawValue = (rawValue << 8) | frame[3 + i];
+
+            Log($"VALID MODBUS: Time={DateTime.Now:HH:mm:ss.fff}, " +
+                $"Slave={slaveId}, Function=03, " +
+                $"ByteCount={byteCount}, " +
+                $"RegisterBytes={Hex(frame.Skip(3).Take(byteCount).ToArray())}, " +
+                $"RawValue={rawValue}, " +
+                $"Frame={Hex(frame)}");
 
             if (!IsAddressAllowed(slaveId))
             {
-                // Valid Modbus frame, but not registered.
-                // Ignore it completely.
-                _buffer.RemoveRange(0, 9);
+                Log($"IGNORED: Slave {slaveId} is not registered.");
+                continue;
+            }
+
+            if (PressureScaleDivisor <= 0)
+            {
+                Log("ERROR: PressureScaleDivisor must be positive.");
+                continue;
+            }
+
+            double pressure = rawValue / PressureScaleDivisor;
+
+            var deviceData = new ModbusDeviceData
+            {
+                ModbusAddress = slaveId,
+                RawValue = rawValue,
+                Pressure = pressure,
+                LastSeen = DateTime.Now
+            };
+
+            try
+            {
+                DeviceDataReceived?.Invoke(deviceData);
+            }
+            catch (Exception ex)
+            {
+                Log($"DATA EVENT ERROR: {ex.Message}");
+            }
+        }
+    }
+
+    private int FindValidFrameStart()
+    {
+        for (int i = 0; i <= _buffer.Count - 5; i++)
+        {
+            byte slaveId = _buffer[i];
+            byte function = _buffer[i + 1];
+
+            if (slaveId is < 1 or > 247)
+                continue;
+
+            if (function == 0x83)
+            {
+                if (_buffer.Count - i < 5)
+                    continue;
+
+                byte[] exceptionFrame = _buffer
+                    .Skip(i)
+                    .Take(5)
+                    .ToArray();
+
+                if (ValidateCrc(exceptionFrame))
+                    return i;
 
                 continue;
             }
 
-            uint rawValue =
-                ((uint)frame[3] << 24) |
-                ((uint)frame[4] << 16) |
-                ((uint)frame[5] << 8) |
-                frame[6];
-
-            double pressure =
-                rawValue / 1000.0;
-
-            var deviceData =
-                new ModbusDeviceData
-                {
-                    ModbusAddress = slaveId,
-
-                    RawValue = rawValue,
-
-                    Pressure = pressure,
-
-                    LastSeen = DateTime.Now
-                };
-
-            DeviceDataReceived?.Invoke(deviceData);
-
-            _buffer.RemoveRange(0, 9);
-        }
-    }
-
-    // ============================================================
-    // FIND FRAME
-    // ============================================================
-
-    private int FindResponseStart()
-    {
-        for (
-            int i = 0;
-            i <= _buffer.Count - 3;
-            i++)
-        {
-            byte slaveId = _buffer[i];
-
-            byte function = _buffer[i + 1];
+            if (function != 0x03)
+                continue;
 
             byte byteCount = _buffer[i + 2];
 
-            if (slaveId >= 1 &&
-                slaveId <= 247 &&
-                function == 0x03 &&
-                byteCount == 0x04)
-            {
+            if (byteCount is not (2 or 4))
+                continue;
+
+            int frameLength = 3 + byteCount + 2;
+
+            if (_buffer.Count - i < frameLength)
+                continue;
+
+            byte[] candidate = _buffer
+                .Skip(i)
+                .Take(frameLength)
+                .ToArray();
+
+            if (ValidateCrc(candidate))
                 return i;
-            }
         }
 
         return -1;
     }
 
-    // ============================================================
-    // CRC
-    // ============================================================
-
     private static bool ValidateCrc(byte[] frame)
     {
-        ushort calculated =
-            CalculateModbusCrc(
-                frame,
-                0,
-                frame.Length - 2
-            );
+        if (frame.Length < 5)
+            return false;
 
-        ushort received =
-            (ushort)(
-                frame[^2] |
-                (frame[^1] << 8)
-            );
+        ushort calculated = CalculateModbusCrc(
+            frame, 0, frame.Length - 2);
+
+        ushort received = (ushort)(
+            frame[^2] | (frame[^1] << 8));
 
         return calculated == received;
     }
 
     private static ushort CalculateModbusCrc(
-        byte[] data,
-        int offset,
-        int length)
+        byte[] data, int offset, int length)
     {
         ushort crc = 0xFFFF;
 
-        for (
-            int i = offset;
-            i < offset + length;
-            i++)
+        for (int i = offset; i < offset + length; i++)
         {
             crc ^= data[i];
 
             for (int j = 0; j < 8; j++)
             {
-                if ((crc & 0x0001) != 0)
-                {
-                    crc =
-                        (ushort)(
-                            (crc >> 1) ^ 0xA001
-                        );
-                }
-                else
-                {
-                    crc >>= 1;
-                }
+                crc = (crc & 1) != 0
+                    ? (ushort)((crc >> 1) ^ 0xA001)
+                    : (ushort)(crc >> 1);
             }
         }
 
         return crc;
     }
-
-    // ============================================================
-    // DISPOSE
-    // ============================================================
-
-    public void Dispose()
-    {
-        Stop();
-
-        _port.DataReceived -= OnDataReceived;
-
-        _port.Dispose();
-    }
-
-
-    
-    private readonly string _logPath = Path.Combine(
-        Environment.GetFolderPath(
-            Environment.SpecialFolder.LocalApplicationData),
-        "VacuumPumpSystem",
-        "modbus-rx.log");
 
     private void Log(string message)
     {
@@ -345,45 +358,23 @@ public class ModbusReceiver : IDisposable
         }
         catch
         {
-            // Prevent diagnostic logging errors from breaking reception.
+            // Diagnostic logging must not interrupt serial reception.
         }
     }
 
+    private static string Hex(byte[] bytes) =>
+        BitConverter.ToString(bytes);
 
-    
-    public async Task RunReceiveDiagnosticAsync(CancellationToken cancellationToken = default)
+    public void Dispose()
     {
-        Log($"POLL TEST STARTED on {_port.PortName}");
+        _port.DataReceived -= OnDataReceived;
 
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            try
-            {
-                if (!_port.IsOpen)
-                {
-                    Log("ERROR: Serial port is closed.");
-                    return;
-                }
+        if (_port.IsOpen)
+            _port.Close();
 
-                int count = _port.BytesToRead;
+        _port.Dispose();
 
-                if (count > 0)
-                {
-                    byte[] data = new byte[count];
-                    int bytesRead = _port.Read(data, 0, count);
-
-                    Log($"POLL RX ({bytesRead} bytes): " +
-                        BitConverter.ToString(data, 0, bytesRead));
-                }
-            }
-            catch (Exception ex)
-            {
-                Log($"POLL ERROR: {ex}");
-                return;
-            }
-
-            await Task.Delay(200, cancellationToken);
-        }
+        lock (_bufferLock)
+            _buffer.Clear();
     }
-
 }

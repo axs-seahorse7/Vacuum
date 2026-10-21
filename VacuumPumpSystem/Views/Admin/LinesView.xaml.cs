@@ -111,6 +111,7 @@ public partial class LinesView : UserControl
         }
     }
 
+    
     private async void EditLine_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button button ||
@@ -119,11 +120,38 @@ public partial class LinesView : UserControl
             return;
         }
 
-        MessageBox.Show(
-            "Edit functionality will be connected next.",
-            "Coming Next",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+        var dialog = new EditLineWindow(line)
+        {
+            Owner = Window.GetWindow(this)
+        };
+
+        if (dialog.ShowDialog() != true)
+            return;
+
+        try
+        {
+            await _lineService.UpdateLineAsync(
+                line.Id,
+                dialog.LineCode,
+                dialog.LineName,
+                dialog.Description);
+
+            await LoadLinesAsync();
+
+            MessageBox.Show(
+                "Production line updated successfully.",
+                "Success",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Unable to update production line.\n\n{ex.Message}",
+                "Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
     }
 
     private async void SetChannel_Click(object sender, RoutedEventArgs e)
