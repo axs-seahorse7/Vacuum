@@ -4,126 +4,192 @@
         Title="Vacuum Pump - Admin"
         Width="1200"
         Height="750"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        Background="#F8FAFC">
+
+    <Window.Resources>
+
+        <!-- Navigation button (same blue accent as the User window) -->
+        <Style x:Key="NavButton" TargetType="Button">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="8"
+                                Padding="14,0">
+                            <ContentPresenter HorizontalAlignment="Left"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#EFF6FF"/>
+                                <Setter Property="Foreground" Value="#2563EB"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#DBEAFE"/>
+                                <Setter Property="Foreground" Value="#1D4ED8"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#EFF6FF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Logout button -->
+        <Style x:Key="LogoutButton" TargetType="Button">
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#B91C1C"/>
+            <Setter Property="Background" Value="#FEF2F2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="#FECACA"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FEE2E2"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FECACA"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#6B7280"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+
+    </Window.Resources>
 
     <Grid>
 
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="240"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
         <!-- Sidebar -->
-
         <Border Grid.Column="0"
-                Background="#F2F2F2"
-                BorderBrush="#CCCCCC"
+                Background="White"
+                BorderBrush="#E5E7EB"
                 BorderThickness="0,0,1,0">
 
-            <Grid>
+            <Grid Margin="16">
 
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
+                <!-- Brand: logo (embedded resource, works offline) + title -->
                 <StackPanel Grid.Row="0"
-                            Margin="20">
+                            Orientation="Horizontal"
+                            Margin="4,4,4,20">
 
-                    <TextBlock Text="VACUUM PUMP"
-                               FontSize="20"
-                               FontWeight="Bold"/>
+                    <Image Source="pack://application:,,,/Assets/Images/logo.png"
+                           Height="36"
+                           Margin="0,0,10,0"
+                           VerticalAlignment="Center"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
 
-                    <TextBlock Text="ADMIN PANEL"
-                               FontSize="13"
-                               Margin="0,3,0,25"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="VACUUM PUMP"
+                                   FontSize="16"
+                                   FontWeight="Bold"
+                                   Foreground="#111827"/>
+                        <TextBlock Text="ADMIN PANEL"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="#2563EB"
+                                   Margin="0,1,0,0"/>
+                    </StackPanel>
+                </StackPanel>
 
-                <StackPanel Margin="0,15,0,15">
-
-                        <TextBlock Text="CURRENT LINE"
-                                FontSize="11"
-                                FontWeight="Bold"
-                                Foreground="Gray"
-                                Margin="0,0,0,5"/>
+                <!-- Current line -->
+                <Border Grid.Row="1"
+                        Background="#F1F5F9"
+                        CornerRadius="10"
+                        Padding="12"
+                        Margin="0,0,0,18">
+                    <StackPanel>
+                        <TextBlock Text="CURRENT LINE" Style="{StaticResource SectionLabel}"/>
 
                         <ComboBox x:Name="LineSelector"
-                                Height="32"
-                                SelectionChanged="LineSelector_SelectionChanged">
-
-                                <ComboBox.ItemTemplate>
+                                  Height="40"
+                                  SelectionChanged="LineSelector_SelectionChanged">
+                            <ComboBox.ItemTemplate>
                                 <DataTemplate>
-                                        <StackPanel>
+                                    <StackPanel>
                                         <TextBlock Text="{Binding LineName}"
-                                                FontWeight="SemiBold"/>
-
+                                                   FontWeight="SemiBold"/>
                                         <TextBlock Text="{Binding LineCode}"
-                                                FontSize="10"
-                                                Foreground="Gray"/>
-                                        </StackPanel>
+                                                   FontSize="10"
+                                                   Foreground="Gray"/>
+                                    </StackPanel>
                                 </DataTemplate>
-                                </ComboBox.ItemTemplate>
-
+                            </ComboBox.ItemTemplate>
                         </ComboBox>
+                    </StackPanel>
+                </Border>
 
+                <!-- Navigation -->
+                <StackPanel Grid.Row="2">
+                    <TextBlock Text="MENU"
+                               Style="{StaticResource SectionLabel}"
+                               Margin="14,0,0,6"/>
+
+                    <Button Content="Dashboard"        Tag="Dashboard"       Click="Navigation_Click" Style="{StaticResource NavButton}"/>
+                    <Button Content="Machines"         Tag="Machines"        Click="Navigation_Click" Style="{StaticResource NavButton}"/>
+                    <Button Content="Device Discovery" Tag="DeviceDiscovery" Click="Navigation_Click" Style="{StaticResource NavButton}"/>
+                    <Button Content="Lines"            Tag="Lines"           Click="Navigation_Click" Style="{StaticResource NavButton}"/>
+                    <Button Content="Products"         Tag="Products"        Click="Navigation_Click" Style="{StaticResource NavButton}"/>
+                    <Button Content="Mappings"         Tag="Mappings"        Click="Navigation_Click" Style="{StaticResource NavButton}"/>
+                    <Button Content="Users"            Tag="Users"           Click="Navigation_Click" Style="{StaticResource NavButton}"/>
+                    <Button Content="Settings"         Tag="Settings"        Click="Navigation_Click" Style="{StaticResource NavButton}"/>
                 </StackPanel>
 
-                    <Button Content="Dashboard"
-                            Tag="Dashboard"
-                            Click="Navigation_Click"
-                            Margin="0,3"/>
-
-                    <Button Content="Machines"
-                            Tag="Machines"
-                            Click="Navigation_Click"
-                            Margin="0,3"/>
-
-                    <Button Content="Device Discovery"
-                            Tag="DeviceDiscovery"
-                            Click="Navigation_Click"
-                            Margin="0,3"/>
-
-                    <Button Content="Lines"
-                            Tag="Lines"
-                            Click="Navigation_Click"
-                            Margin="0,3"/>
-
-                    <Button Content="Products"
-                            Tag="Products"
-                            Click="Navigation_Click"
-                            Margin="0,3"/>
-
-                    <Button Content="Mappings"
-                            Tag="Mappings"
-                            Click="Navigation_Click"
-                            Margin="0,3"/>
-
-                    <Button Content="Users"
-                            Tag="Users"
-                            Click="Navigation_Click"
-                            Margin="0,3"/>
-
-                    <Button Content="Settings"
-                            Tag="Settings"
-                            Click="Navigation_Click"
-                            Margin="0,3"/>
-
-                </StackPanel>
-
-                <Button Grid.Row="2"
+                <!-- Logout -->
+                <Button Grid.Row="3"
                         Content="LOGOUT"
-                        Margin="20"
-                        Height="35"
-                        Click="Logout_Click"/>
+                        Click="Logout_Click"
+                        Style="{StaticResource LogoutButton}"/>
 
             </Grid>
 
         </Border>
 
         <!-- Main Content -->
-
         <Grid Grid.Column="1"
-              Background="White">
+              Background="#F8FAFC">
 
             <ContentControl x:Name="MainContent"/>
 

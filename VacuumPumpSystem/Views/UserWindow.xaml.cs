@@ -48,6 +48,28 @@ public partial class UserWindow : Window
         if (_lines.Count > 0)
             LineSelector.SelectedIndex = 0;
     }
+    private void ShowScanResult(bool accepted, string message)
+    {
+        ScanResultText.Text = accepted ? "OK" : "NG";
+
+        ScanResultBorder.Background = accepted
+            ? System.Windows.Media.Brushes.LightGreen
+            : System.Windows.Media.Brushes.LightCoral;
+
+        ScanResultBorder.BorderBrush = accepted
+            ? System.Windows.Media.Brushes.Green
+            : System.Windows.Media.Brushes.Red;
+
+        ScanResultText.Foreground = accepted
+            ? System.Windows.Media.Brushes.DarkGreen
+            : System.Windows.Media.Brushes.DarkRed;
+
+        ScanStatusText.Text = message;
+        ScanStatusText.Foreground = accepted
+            ? System.Windows.Media.Brushes.DarkGreen
+            : System.Windows.Media.Brushes.DarkRed;
+    }
+
 
     private async void LineSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -140,7 +162,7 @@ public partial class UserWindow : Window
                     IsRegistered = true,
                     DummyCode = machine.DummyCode,
                     MachineName = machine.MachineName,
-                    IsPressureWithinLimit =_hasActiveScanPolicy && _maximumPressure.HasValue &&
+                    IsPressureWithinLimit = _hasActiveScanPolicy && _maximumPressure.HasValue &&
                     machine.CurrentPressure.HasValue &&
                     machine.IsOnline &&
                     machine.LastSeen.HasValue &&
@@ -241,14 +263,22 @@ public partial class UserWindow : Window
     private async Task RecordScanAsync()    
     {
         if (_isSaving) return;
+
+        ScanResultText.Text = "";
+        ScanResultBorder.Visibility = Visibility.Visible;
+        ScanResultBorder.Background = System.Windows.Media.Brushes.Transparent;
+        ScanResultBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(156, 163, 175));
+        ScanStatusText.Text = "";
+
         if (!_hasActiveScanPolicy)
         {
-            ScanStatusText.Text = "Scanning is disabled because this line has no active policy.";
+            ShowScanResult(false, "Scanning is disabled because this line has no active policy.");
             return;
         }
+
         if (LineSelector.SelectedItem is not ProductionLine selectedLine || selectedLine.Id != _selectedLineId)
         {
-            ScanStatusText.Text = "Select a production line first.";
+            ShowScanResult(false, "Select a production line first.");
             return;
         }
 
@@ -256,16 +286,16 @@ public partial class UserWindow : Window
         string serialNo = ScanSerialTextBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(dummyCode) || string.IsNullOrWhiteSpace(serialNo))
         {
-            ScanStatusText.Text = "Scan both the Dummy QR and product serial number.";
+            ShowScanResult(false, "Scan both the Dummy QR and product serial number.");
             return;
         }
 
-        var machine = _devices.FirstOrDefault(x =>
-            string.Equals(x.DummyCode, dummyCode, StringComparison.OrdinalIgnoreCase));
+        string machineName = ScanDummyTextBox.Text.Trim();
+        var machine = _devices.FirstOrDefault(x => string.Equals(x.MachineName?.Trim(),machineName, StringComparison.OrdinalIgnoreCase));
 
         if (machine == null || !_machineIdsByAddress.TryGetValue(machine.ModbusAddress, out int machineId))
         {
-            ScanStatusText.Text = $"Machine '{dummyCode}' is not registered on the selected line.";
+           ShowScanResult(false, $"Machine '{machineName}' is not registered on the selected line.");
 
             ScanDummyTextBox.Clear();
             ScanSerialTextBox.Clear();
@@ -273,11 +303,9 @@ public partial class UserWindow : Window
             return;
         }
 
-        if (!string.Equals(machine.Status, "ONLINE", StringComparison.OrdinalIgnoreCase) ||
-            machine.LastSeen == DateTime.MinValue ||
-            DateTime.Now - machine.LastSeen > TimeSpan.FromSeconds(10))
+        if (!string.Equals(machine.Status, "ONLINE", StringComparison.OrdinalIgnoreCase) || machine.LastSeen == DateTime.MinValue || DateTime.Now - machine.LastSeen > TimeSpan.FromSeconds(10))
         {
-            ScanStatusText.Text = "No fresh pressure reading is available for this machine.";
+            ShowScanResult(false, "No fresh pressure reading is available for this machine.");
             return;
         }
 
@@ -293,9 +321,16 @@ public partial class UserWindow : Window
 
             if (versionAtStart != _lineSelectionVersion) return;
 
-            ScanStatusText.Text = result.IsCompleted
-                ? $"COMPLETE: {serialNo} | {result.AcceptedScanCount}/{result.RequiredScanCount} scans | {result.Pressure:0.###} mbar"
-                : $"Accepted scan {result.AcceptedScanCount}/{result.RequiredScanCount}: {serialNo} | pressure {result.Pressure:0.###} mbar.";
+            
+            ShowScanResult(
+                true,
+                result.IsCompleted
+                    ? $"COMPLETE: {serialNo} | " +
+                    $"{result.AcceptedScanCount}/{result.RequiredScanCount} scans | " +
+                    $"{result.Pressure:0.###} mbar"
+                    : $"Accepted scan {result.AcceptedScanCount}/" +
+                    $"{result.RequiredScanCount}: {serialNo} | " +
+                    $"Pressure {result.Pressure:0.###} mbar.");
 
             ScanSerialTextBox.Clear();
             ScanDummyTextBox.Clear();
@@ -303,9 +338,11 @@ public partial class UserWindow : Window
             ScanDummyTextBox.Focus();
         }
         catch (Exception ex)
-        {
+{
             if (versionAtStart == _lineSelectionVersion)
-                ScanStatusText.Text = $"Scan rejected: {ex.Message}";
+            {
+                ShowScanResult(false, $"Scan rejected: {ex.Message}");
+            }
         }
         finally
         {
@@ -381,6 +418,7 @@ public partial class UserWindow : Window
     {
         await RecordScanAsync();
     }
+    
     private void UserWindow_Loaded(object sender, RoutedEventArgs e)
     {
         Loaded -= UserWindow_Loaded;

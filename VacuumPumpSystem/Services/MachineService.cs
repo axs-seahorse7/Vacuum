@@ -18,13 +18,9 @@ public class MachineService
 
     // Check whether a Modbus address is already registered
     // inside a specific production line.
-    public async Task<bool> IsModbusAddressRegisteredAsync(
-        int lineId,
-        byte modbusAddress)
+    public async Task<bool> IsModbusAddressRegisteredAsync(int lineId, byte modbusAddress)
     {
-        await using var connection =
-            new MySqlConnection(_connectionString);
-
+        await using var connection = new MySqlConnection(_connectionString);
         await connection.OpenAsync();
 
         const string sql = """
@@ -34,68 +30,60 @@ public class MachineService
               AND modbus_address = @modbusAddress;
             """;
 
-        await using var command =
-            new MySqlCommand(sql, connection);
-
-        command.Parameters.AddWithValue(
-            "@lineId",
-            lineId);
-
-        command.Parameters.AddWithValue(
-            "@modbusAddress",
-            modbusAddress);
-
-        var result =
-            await command.ExecuteScalarAsync();
+        await using var command = new MySqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@lineId", lineId);
+        command.Parameters.AddWithValue("@modbusAddress", modbusAddress);
+        var result = await command.ExecuteScalarAsync();
 
         return Convert.ToInt32(result) > 0;
     }
 
     // Register a machine under a specific production line.
-    public async Task<string> RegisterMachineAsync(
-        int lineId,
-        byte modbusAddress,
-        string machineName)
+    public async Task<string> RegisterMachineAsync(int lineId, byte modbusAddress, string machineName)
     {
-        await using var connection =
-            new MySqlConnection(_connectionString);
-
+        await using var connection = new MySqlConnection(_connectionString);
         await connection.OpenAsync();
 
-        await using var transaction =
-            await connection.BeginTransactionAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
 
         try
         {
+            
+            machineName = machineName?.Trim() ?? throw new ArgumentNullException(nameof(machineName));
+
+            if (string.IsNullOrWhiteSpace(machineName))
+            {
+                throw new ArgumentException("Machine name is required.", nameof(machineName));
+            }
+
+            const string duplicateNameSql = """
+                SELECT COUNT(*)
+                FROM vacuum_machines
+                WHERE LOWER(TRIM(machine_name)) = LOWER(TRIM(@machineName));
+                """;
+
+            await using (var duplicateCommand = new MySqlCommand(duplicateNameSql, connection, transaction))
+            {
+                duplicateCommand.Parameters.AddWithValue("@machineName", machineName);
+                int existingCount = Convert.ToInt32(await duplicateCommand.ExecuteScalarAsync());
+
+                if (existingCount > 0)
+                {
+                    throw new InvalidOperationException($"Machine name '{machineName}' is already registered globally.");
+                }
+            }
+
             // Generate the next global Dummy Code.
             const string nextDummySql = """
-                SELECT COALESCE(
-                    MAX(
-                        CAST(
-                            SUBSTRING(dummy_code, 3)
-                            AS UNSIGNED
-                        )
-                    ),
-                    0
-                ) + 1
+                SELECT COALESCE( MAX(CAST(SUBSTRING(dummy_code, 3) AS UNSIGNED)), 0) + 1
                 FROM vacuum_machines
                 WHERE dummy_code LIKE 'DM%';
                 """;
 
-            await using var dummyCommand =
-                new MySqlCommand(
-                    nextDummySql,
-                    connection,
-                    transaction);
-
-            var result =
-                await dummyCommand.ExecuteScalarAsync();
-
-            int nextNumber =
-                Convert.ToInt32(result);
-
-            string dummyCode =
-                $"DM{nextNumber}";
+            await using var dummyCommand = new MySqlCommand(nextDummySql, connection, transaction);
+            var result = await dummyCommand.ExecuteScalarAsync();
+            int nextNumber = Convert.ToInt32(result);
+            string dummyCode = $"DM{nextNumber}";
 
             // Insert machine.
             const string insertSql = """
@@ -121,30 +109,13 @@ public class MachineService
                 );
                 """;
 
-            await using var insertCommand =
-                new MySqlCommand(
-                    insertSql,
-                    connection,
-                    transaction);
+            await using var insertCommand = new MySqlCommand(insertSql, connection, transaction);
 
-            insertCommand.Parameters.AddWithValue(
-                "@lineId",
-                lineId);
-
-            insertCommand.Parameters.AddWithValue(
-                "@dummyCode",
-                dummyCode);
-
-            insertCommand.Parameters.AddWithValue(
-                "@modbusAddress",
-                modbusAddress);
-
-            insertCommand.Parameters.AddWithValue(
-                "@machineName",
-                machineName);
-
+            insertCommand.Parameters.AddWithValue("@lineId",lineId);
+            insertCommand.Parameters.AddWithValue("@dummyCode",dummyCode);
+            insertCommand.Parameters.AddWithValue("@modbusAddress",modbusAddress);
+            insertCommand.Parameters.AddWithValue("@machineName",machineName);
             await insertCommand.ExecuteNonQueryAsync();
-
             await transaction.CommitAsync();
 
             return dummyCode;
@@ -297,80 +268,35 @@ public class MachineService
             ORDER BY vm.id;
             """;
 
-        await using var command =
-            new MySqlCommand(sql, connection);
-
-        command.Parameters.AddWithValue(
-            "@lineId",
-            lineId);
-
-        await using var reader =
-            await command.ExecuteReaderAsync();
+        await using var command = new MySqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@lineId",lineId);
+        await using var reader = await command.ExecuteReaderAsync();
 
         while (await reader.ReadAsync())
         {
-            int idIndex =
-                reader.GetOrdinal("id");
-
-            int lineIdIndex =
-                reader.GetOrdinal("line_id");
-
-            int lineCodeIndex =
-                reader.GetOrdinal("line_code");
-
-            int lineNameIndex =
-                reader.GetOrdinal("line_name");
-
-            int dummyCodeIndex =
-                reader.GetOrdinal("dummy_code");
-
-            int modbusAddressIndex =
-                reader.GetOrdinal("modbus_address");
-
-            int machineNameIndex =
-                reader.GetOrdinal("machine_name");
-
-            int pressureIndex =
-                reader.GetOrdinal("current_pressure");
-
-            int onlineIndex =
-                reader.GetOrdinal("is_online");
-
-            int lastSeenIndex =
-                reader.GetOrdinal("last_seen_at");
+            int idIndex = reader.GetOrdinal("id");
+            int lineIdIndex = reader.GetOrdinal("line_id");
+            int lineCodeIndex = reader.GetOrdinal("line_code");
+            int lineNameIndex = reader.GetOrdinal("line_name");
+            int dummyCodeIndex = reader.GetOrdinal("dummy_code");
+            int modbusAddressIndex = reader.GetOrdinal("modbus_address");
+            int machineNameIndex = reader.GetOrdinal("machine_name");
+            int pressureIndex = reader.GetOrdinal("current_pressure");
+            int onlineIndex = reader.GetOrdinal("is_online");
+            int lastSeenIndex = reader.GetOrdinal("last_seen_at");
 
             machines.Add(new RegisteredMachine
             {
                 Id = reader.GetInt32(idIndex),
-
                 LineId = reader.GetInt32(lineIdIndex),
-
                 LineCode = reader.GetString(lineCodeIndex),
-
                 LineName = reader.GetString(lineNameIndex),
-
                 DummyCode = reader.GetString(dummyCodeIndex),
-
-                ModbusAddress =
-                    reader.GetByte(modbusAddressIndex),
-
-                MachineName =
-                    reader.IsDBNull(machineNameIndex)
-                        ? ""
-                        : reader.GetString(machineNameIndex),
-
-                CurrentPressure =
-                    reader.IsDBNull(pressureIndex)
-                        ? null
-                        : reader.GetDecimal(pressureIndex),
-
-                IsOnline =
-                    reader.GetBoolean(onlineIndex),
-
-                LastSeen =
-                    reader.IsDBNull(lastSeenIndex)
-                        ? null
-                        : reader.GetDateTime(lastSeenIndex)
+                ModbusAddress = reader.GetByte(modbusAddressIndex),
+                MachineName = reader.IsDBNull(machineNameIndex)? "": reader.GetString(machineNameIndex),
+                CurrentPressure = reader.IsDBNull(pressureIndex)? null : reader.GetDecimal(pressureIndex),
+                IsOnline = reader.GetBoolean(onlineIndex),
+                LastSeen = reader.IsDBNull(lastSeenIndex)? null: reader.GetDateTime(lastSeenIndex)
             });
         }
 

@@ -16,7 +16,7 @@
                 <TextBlock Text="Product Mapping"
                            FontSize="28"
                            FontWeight="Bold"/>
-                <TextBlock Text="Scan a machine Dummy code and associate a product serial number."
+                <TextBlock Text="Scan a machine name QR and associate a product serial number."
                            Margin="0,8,0,0"
                            Foreground="Gray"
                            FontSize="14"/>
@@ -28,17 +28,17 @@
                     CornerRadius="10"
                     Margin="0,0,0,20">
                 <StackPanel>
-                    <TextBlock Text="1. Scan Machine Dummy Code"
+                    <TextBlock Text="1. Scan Machine Name QR"
                                FontSize="16"
                                FontWeight="SemiBold"
                                Margin="0,0,0,10"/>
 
-                    <TextBox x:Name="DummyCodeTextBox"
+                    <TextBox x:Name="MachineNameTextBox"
                              Height="42"
                              FontSize="16"
                              Padding="10"
                              VerticalContentAlignment="Center"
-                             ToolTip="Scan Dummy code, e.g. DM1"/>
+                             ToolTip="Scan machine name, e.g. VP/ODUL1/1"/>
 
                     <TextBlock x:Name="MachineInfoText"
                                Margin="0,10,0,0"
@@ -93,7 +93,7 @@
                                FontWeight="SemiBold"/>
 
                     <TextBlock x:Name="CurrentMappingText"
-                               Text="Scan a Dummy code to check its active mapping."
+                               Text="Scan a machine name QR to check its active mapping."
                                Margin="0,12,0,0"
                                FontSize="15"
                                TextWrapping="Wrap"/>

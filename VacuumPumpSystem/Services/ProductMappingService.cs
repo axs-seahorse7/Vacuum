@@ -13,21 +13,22 @@ public class ProductMappingService
         "User ID=root;" +
         "Password=mysql;";
 
-    public async Task<ProductMapping?> GetActiveMappingByDummyAsync(
-        string dummyCode)
+    public async Task<ProductMapping?> GetActiveMappingByMachineNameAsync(
+        string machineName)
     {
         const string sql = """
             SELECT
                 pm.id,
                 pm.machine_id,
                 vm.dummy_code,
+                vm.machine_name,
                 pm.product_code,
                 pm.mapped_at,
                 pm.unmapped_at
             FROM product_mappings pm
             INNER JOIN vacuum_machines vm
                 ON vm.id = pm.machine_id
-            WHERE vm.dummy_code = @dummyCode
+            WHERE vm.machine_name = @machineName
               AND pm.unmapped_at IS NULL
             ORDER BY pm.mapped_at DESC
             LIMIT 1;
@@ -42,7 +43,7 @@ public class ProductMappingService
             new MySqlCommand(sql, connection);
 
         command.Parameters.AddWithValue(
-            "@dummyCode", dummyCode.Trim());
+            "@machineName", machineName.Trim());
 
         await using var reader =
             await command.ExecuteReaderAsync();
@@ -55,6 +56,7 @@ public class ProductMappingService
             Id = reader.GetInt64("id"),
             MachineId = reader.GetInt32("machine_id"),
             DummyCode = reader.GetString("dummy_code"),
+            MachineName = reader.GetString("machine_name"),
             ProductCode = reader.GetString("product_code"),
             MappedAt = reader.GetDateTime("mapped_at"),
             UnmappedAt = reader.IsDBNull(
@@ -65,33 +67,35 @@ public class ProductMappingService
     }
 
     public async Task MapProductAsync(
-        string dummyCode,
+        string machineName,
         string productCode)
     {
-        dummyCode = dummyCode.Trim();
-        productCode = productCode.Trim();
+        machineName = machineName?.Trim()
+            ?? throw new ArgumentNullException(nameof(machineName));
 
-        if (string.IsNullOrWhiteSpace(dummyCode))
-            throw new ArgumentException("Dummy code is required.");
+        productCode = productCode?.Trim()
+            ?? throw new ArgumentNullException(nameof(productCode));
+
+        if (string.IsNullOrWhiteSpace(machineName))
+            throw new ArgumentException("Machine name is required.");
 
         if (string.IsNullOrWhiteSpace(productCode))
-            throw new ArgumentException("Product serial number is required.");
+            throw new ArgumentException(
+                "Product serial number is required.");
 
-        await using var connection =
-            new MySqlConnection(_connectionString);
+        await using var connection = new MySqlConnection(_connectionString);
 
         await connection.OpenAsync();
 
-        await using var transaction =
-            await connection.BeginTransactionAsync();
+        await using var transaction =await connection.BeginTransactionAsync();
 
         try
         {
-            // Lock and validate the target machine.
+            // Find and lock the machine using its unique name.
             const string machineSql = """
                 SELECT id
                 FROM vacuum_machines
-                WHERE dummy_code = @dummyCode
+                WHERE machine_name = @machineName
                 FOR UPDATE;
                 """;
 
@@ -100,20 +104,18 @@ public class ProductMappingService
             await using (var machineCommand = new MySqlCommand(
                 machineSql, connection, transaction))
             {
-                machineCommand.Parameters.AddWithValue(
-                    "@dummyCode", dummyCode);
+                machineCommand.Parameters.AddWithValue("@machineName", machineName);
 
                 var result = await machineCommand.ExecuteScalarAsync();
 
                 if (result == null || result == DBNull.Value)
-                    throw new InvalidOperationException(
-                        $"Machine '{dummyCode}' was not found.");
+                    throw new InvalidOperationException($"Machine '{machineName}' was not found.");
 
                 machineId = Convert.ToInt32(result);
             }
 
             // Prevent a product from being actively mapped
-            // to a different machine.
+            // to another machine or mapped twice to this machine.
             const string duplicateSql = """
                 SELECT machine_id
                 FROM product_mappings
@@ -123,25 +125,19 @@ public class ProductMappingService
                 FOR UPDATE;
                 """;
 
-            await using (var duplicateCommand = new MySqlCommand(
-                duplicateSql, connection, transaction))
+            await using (var duplicateCommand = new MySqlCommand(duplicateSql, connection, transaction))
             {
-                duplicateCommand.Parameters.AddWithValue(
-                    "@productCode", productCode);
-
-                var result =
-                    await duplicateCommand.ExecuteScalarAsync();
+                duplicateCommand.Parameters.AddWithValue("@productCode", productCode);
+                var result =await duplicateCommand.ExecuteScalarAsync();
 
                 if (result != null && result != DBNull.Value)
                 {
                     int existingMachineId = Convert.ToInt32(result);
 
                     if (existingMachineId == machineId)
-                        throw new InvalidOperationException(
-                            "This product is already mapped to this machine.");
+                        throw new InvalidOperationException("This product is already mapped to this machine.");
 
-                    throw new InvalidOperationException(
-                        "This product is already mapped to another machine.");
+                    throw new InvalidOperationException("This product is already mapped to another machine.");
                 }
             }
 
@@ -155,17 +151,13 @@ public class ProductMappingService
                 FOR UPDATE;
                 """;
 
-            await using (var activeCommand = new MySqlCommand(
-                activeMachineSql, connection, transaction))
+            await using (var activeCommand = new MySqlCommand(activeMachineSql, connection, transaction))
             {
-                activeCommand.Parameters.AddWithValue(
-                    "@machineId", machineId);
-
-                var result = await activeCommand.ExecuteScalarAsync();
+                activeCommand.Parameters.AddWithValue("@machineId", machineId);
+                var result =await activeCommand.ExecuteScalarAsync();
 
                 if (result != null && result != DBNull.Value)
-                    throw new InvalidOperationException(
-                        "This machine already has an active product mapping. Unmap it first.");
+                    throw new InvalidOperationException("This machine already has an active product mapping. Unmap it first.");
             }
 
             const string insertSql = """
@@ -175,15 +167,10 @@ public class ProductMappingService
                     (@machineId, @productCode);
                 """;
 
-            await using (var insertCommand = new MySqlCommand(
-                insertSql, connection, transaction))
+            await using (var insertCommand = new MySqlCommand(insertSql, connection, transaction))
             {
-                insertCommand.Parameters.AddWithValue(
-                    "@machineId", machineId);
-
-                insertCommand.Parameters.AddWithValue(
-                    "@productCode", productCode);
-
+                insertCommand.Parameters.AddWithValue("@machineId", machineId);
+                insertCommand.Parameters.AddWithValue("@productCode", productCode);
                 await insertCommand.ExecuteNonQueryAsync();
             }
 

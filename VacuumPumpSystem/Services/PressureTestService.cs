@@ -5,6 +5,7 @@ namespace VacuumPumpSystem.Services;
 
 public class PressureTestService
 {
+
     private readonly string _connectionString =
         "Server=localhost;" +
         "Port=3306;" +
@@ -66,30 +67,35 @@ public class PressureTestService
         }
     }
 
-    public async Task<List<PressureTestRecord>> GetRecentTestsAsync(
-        int lineId,
-        int limit = 10)
+    public async Task<List<PressureTestRecord>> GetRecentTestsAsync(int lineId, int limit = 10)
     {
         limit = Math.Clamp(limit, 1, 100);
 
         var records = new List<PressureTestRecord>();
 
         const string sql = """
-            SELECT id, line_id, machine_id, dummy_code,
-                   product_serial_no, pressure_value, tested_at
-            FROM pressure_test_records
-            WHERE line_id = @lineId
-            ORDER BY tested_at DESC, id DESC
+            SELECT
+                ptr.id,
+                ptr.line_id,
+                ptr.machine_id,
+                ptr.dummy_code,
+                vm.machine_name,
+                ptr.product_serial_no,
+                ptr.pressure_value,
+                ptr.tested_at
+            FROM pressure_test_records ptr
+            INNER JOIN vacuum_machines vm
+                ON vm.id = ptr.machine_id
+            WHERE ptr.line_id = @lineId
+            ORDER BY ptr.tested_at DESC, ptr.id DESC
             LIMIT @limit;
-            """;
+        """;
 
-        await using var connection =
-            new MySqlConnection(_connectionString);
+        await using var connection = new MySqlConnection(_connectionString);
 
         await connection.OpenAsync();
 
-        await using var command =
-            new MySqlCommand(sql, connection);
+        await using var command = new MySqlCommand(sql, connection);
 
         command.Parameters.AddWithValue("@lineId", lineId);
         command.Parameters.AddWithValue("@limit", limit);
@@ -104,6 +110,7 @@ public class PressureTestService
                 LineId = reader.GetInt32("line_id"),
                 MachineId = reader.GetInt32("machine_id"),
                 DummyCode = reader.GetString("dummy_code"),
+                MachineName = reader.GetString("machine_name"),
                 ProductSerialNo = reader.GetString("product_serial_no"),
                 PressureValue = reader.GetDecimal("pressure_value"),
                 TestedAt = reader.GetDateTime("tested_at")
@@ -123,4 +130,5 @@ public class PressureTestRecord
     public string ProductSerialNo { get; set; } = string.Empty;
     public decimal PressureValue { get; set; }
     public DateTime TestedAt { get; set; }
+    public string MachineName { get; set; } = string.Empty;
 }

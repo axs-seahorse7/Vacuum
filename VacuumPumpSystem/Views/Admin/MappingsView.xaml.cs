@@ -13,11 +13,11 @@ public partial class MappingsView : UserControl
     {
         InitializeComponent();
 
-        DummyCodeTextBox.KeyDown += DummyCodeTextBox_KeyDown;
+        MachineNameTextBox.KeyDown += MachineNameTextBox_KeyDown;
         ProductCodeTextBox.KeyDown += ProductCodeTextBox_KeyDown;
     }
 
-    private async void DummyCodeTextBox_KeyDown(
+    private async void MachineNameTextBox_KeyDown(
         object sender,
         System.Windows.Input.KeyEventArgs e)
     {
@@ -28,7 +28,7 @@ public partial class MappingsView : UserControl
         await LoadCurrentMappingAsync();
     }
 
-    private void ProductCodeTextBox_KeyDown(
+    private async void ProductCodeTextBox_KeyDown(
         object sender,
         System.Windows.Input.KeyEventArgs e)
     {
@@ -36,29 +36,30 @@ public partial class MappingsView : UserControl
             return;
 
         e.Handled = true;
-        MapButton_Click(sender, new RoutedEventArgs());
+        await MapProductAsync();
     }
 
     private async Task LoadCurrentMappingAsync()
     {
-        string dummyCode = DummyCodeTextBox.Text.Trim();
+        string machineName = MachineNameTextBox.Text.Trim();
 
-        if (string.IsNullOrWhiteSpace(dummyCode))
+        if (string.IsNullOrWhiteSpace(machineName))
         {
-            MachineInfoText.Text = "Please scan a Dummy code.";
+            MachineInfoText.Text = "Please scan a machine name QR.";
             return;
         }
 
         try
         {
             var mapping =
-                await _mappingService.GetActiveMappingByDummyAsync(dummyCode);
+                await _mappingService.GetActiveMappingByMachineNameAsync(
+                    machineName);
 
-            MachineInfoText.Text = $"Machine: {dummyCode}";
+            MachineInfoText.Text = $"Machine: {machineName}";
 
             CurrentMappingText.Text = mapping == null
                 ? "No active product mapping exists for this machine."
-                : $"Dummy: {mapping.DummyCode}\n" +
+                : $"Machine Name: {mapping.MachineName}\n" +
                   $"Product Serial: {mapping.ProductCode}\n" +
                   $"Mapped At: {mapping.MappedAt:g}";
 
@@ -75,14 +76,19 @@ public partial class MappingsView : UserControl
         object sender,
         RoutedEventArgs e)
     {
-        string dummyCode = DummyCodeTextBox.Text.Trim();
+        await MapProductAsync();
+    }
+
+    private async Task MapProductAsync()
+    {
+        string machineName = MachineNameTextBox.Text.Trim();
         string productCode = ProductCodeTextBox.Text.Trim();
 
-        if (string.IsNullOrWhiteSpace(dummyCode) ||
+        if (string.IsNullOrWhiteSpace(machineName) ||
             string.IsNullOrWhiteSpace(productCode))
         {
             StatusText.Text =
-                "Scan both the Dummy code and product serial number.";
+                "Scan both the machine name QR and product serial QR.";
             return;
         }
 
@@ -91,11 +97,11 @@ public partial class MappingsView : UserControl
         try
         {
             await _mappingService.MapProductAsync(
-                dummyCode,
+                machineName,
                 productCode);
 
             StatusText.Text =
-                $"Successfully mapped {productCode} to {dummyCode}.";
+                $"Successfully mapped {productCode} to {machineName}.";
 
             ProductCodeTextBox.Clear();
 
