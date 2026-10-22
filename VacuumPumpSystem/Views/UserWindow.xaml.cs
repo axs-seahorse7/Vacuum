@@ -5,6 +5,8 @@ using System.Windows.Input;
 using VacuumPump.Communication.Models;
 using VacuumPump.Communication.Services;
 using VacuumPumpSystem.Services;
+using VacuumPumpSystem.Models;
+using System.Threading;
 
 namespace VacuumPumpSystem.Views;
 
@@ -18,6 +20,9 @@ public partial class UserWindow : Window
     private readonly ScanPolicyService _scanPolicyService = new();
     private readonly SerialScanService _serialScanService = new();
     private readonly LoRaConfigurationService _loRaConfigurationService = new();
+    private CancellationTokenSource? _scanResultCts;
+
+    private ProductModel? _selectedModel;
 
     private ModbusReceiver? _receiver;
     private readonly ObservableCollection<ModbusDeviceData> _devices = new();
@@ -48,8 +53,14 @@ public partial class UserWindow : Window
         if (_lines.Count > 0)
             LineSelector.SelectedIndex = 0;
     }
-    private void ShowScanResult(bool accepted, string message)
+    private async void ShowScanResult(bool accepted, string message)
     {
+        _scanResultCts?.Cancel();
+        _scanResultCts?.Dispose();
+
+        var cts = new CancellationTokenSource();
+        _scanResultCts = cts;
+
         ScanResultText.Text = accepted ? "OK" : "NG";
 
         ScanResultBorder.Background = accepted
@@ -68,8 +79,41 @@ public partial class UserWindow : Window
         ScanStatusText.Foreground = accepted
             ? System.Windows.Media.Brushes.DarkGreen
             : System.Windows.Media.Brushes.DarkRed;
+
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(2), cts.Token);
+
+            if (!cts.IsCancellationRequested)
+            {
+                ScanResultText.Text = "";
+                ScanResultBorder.Background =
+                    System.Windows.Media.Brushes.Transparent;
+                ScanResultBorder.BorderBrush =
+                    System.Windows.Media.Brushes.Transparent;
+                ScanStatusText.Text = "";
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer scan result has replaced this one.
+        }
     }
 
+    private void ShowScanError(string message)
+    {
+        _scanResultCts?.Cancel();
+
+        ScanResultText.Text = "";
+        ScanResultBorder.Background =
+            System.Windows.Media.Brushes.Transparent;
+        ScanResultBorder.BorderBrush =
+            System.Windows.Media.Brushes.Transparent;
+
+        ScanStatusText.Text = message;
+        ScanStatusText.Foreground =
+            System.Windows.Media.Brushes.DarkRed;
+    }
 
     private async void LineSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -272,13 +316,13 @@ public partial class UserWindow : Window
 
         if (!_hasActiveScanPolicy)
         {
-            ShowScanResult(false, "Scanning is disabled because this line has no active policy.");
+            ShowScanError("Scanning is disabled because this line has no active policy.");
             return;
         }
 
         if (LineSelector.SelectedItem is not ProductionLine selectedLine || selectedLine.Id != _selectedLineId)
         {
-            ShowScanResult(false, "Select a production line first.");
+            ShowScanError("Select a production line first.");
             return;
         }
 
@@ -286,7 +330,28 @@ public partial class UserWindow : Window
         string serialNo = ScanSerialTextBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(dummyCode) || string.IsNullOrWhiteSpace(serialNo))
         {
-            ShowScanResult(false, "Scan both the Dummy QR and product serial number.");
+            ShowScanError( "Scan both the Dummy QR and product serial number.");
+            return;
+        }
+
+        if (_selectedModel == null)
+        {
+            ShowScanError( "Please select a product model before scanning.");
+
+            return;
+        }
+
+        if (!serialNo.StartsWith(_selectedModel.SerialPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            ShowScanError(
+                $"NG: Serial prefix does not match model " +
+                $"{_selectedModel.ModelName}. Expected prefix: " +
+                $"{_selectedModel.SerialPrefix}.");
+
+            ScanSerialTextBox.Clear();
+            ScanSerialTextBox.Focus();
+            ScanSerialTextBox.SelectAll();
+
             return;
         }
 
@@ -295,7 +360,7 @@ public partial class UserWindow : Window
 
         if (machine == null || !_machineIdsByAddress.TryGetValue(machine.ModbusAddress, out int machineId))
         {
-           ShowScanResult(false, $"Machine '{machineName}' is not registered on the selected line.");
+           ShowScanError( $"Machine '{machineName}' is not registered on the selected line.");
 
             ScanDummyTextBox.Clear();
             ScanSerialTextBox.Clear();
@@ -305,8 +370,8 @@ public partial class UserWindow : Window
 
         if (!string.Equals(machine.Status, "ONLINE", StringComparison.OrdinalIgnoreCase) || machine.LastSeen == DateTime.MinValue || DateTime.Now - machine.LastSeen > TimeSpan.FromSeconds(10))
         {
-            ShowScanResult(false, "No fresh pressure reading is available for this machine.");
-            return;
+                ShowScanError("No fresh pressure reading is available for this machine.");            
+                    return;
         }
 
         int versionAtStart = _lineSelectionVersion;
@@ -338,7 +403,7 @@ public partial class UserWindow : Window
             ScanDummyTextBox.Focus();
         }
         catch (Exception ex)
-{
+        {
             if (versionAtStart == _lineSelectionVersion)
             {
                 ShowScanResult(false, $"Scan rejected: {ex.Message}");
@@ -435,6 +500,50 @@ public partial class UserWindow : Window
             ScanDummyTextBox.Focus();
             ScanDummyTextBox.SelectAll();
         }));
+    }
+
+    private void ModelSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        ScanResultText.Text = "";
+        ScanResultBorder.Background =
+            System.Windows.Media.Brushes.Transparent;
+        ScanResultBorder.BorderBrush =
+            System.Windows.Media.Brushes.Transparent;
+        ScanStatusText.Text = "";
+
+        ScanSerialTextBox.Clear();
+        ScanDummyTextBox.Clear();
+
+        FocusDummyInput();
+    }
+
+    private void SelectModel_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new ModelSelectionWindow(_selectedModel)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() != true ||
+            dialog.SelectedModel == null)
+        {
+            return;
+        }
+
+        // This assignment is essential.
+        _selectedModel = dialog.SelectedModel;
+
+        SelectedModelText.Text = $"{_selectedModel.ModelName} | Prefix: {_selectedModel.SerialPrefix}";
+
+        ScanSerialTextBox.Clear();
+        ScanDummyTextBox.Clear();
+
+        ScanResultText.Text = "";
+        ScanResultBorder.Background = System.Windows.Media.Brushes.Transparent;
+        ScanResultBorder.BorderBrush = System.Windows.Media.Brushes.Transparent;
+        ScanStatusText.Text = "";
+
+        FocusDummyInput();
     }
 
 }

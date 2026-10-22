@@ -172,6 +172,7 @@
                     <Button Content="Device Discovery" Tag="DeviceDiscovery" Click="Navigation_Click" Style="{StaticResource NavButton}"/>
                     <Button Content="Lines"            Tag="Lines"           Click="Navigation_Click" Style="{StaticResource NavButton}"/>
                     <Button Content="Products"         Tag="Products"        Click="Navigation_Click" Style="{StaticResource NavButton}"/>
+                    <Button Content="Models"           Tag="Models"          Click="Navigation_Click" Style="{StaticResource NavButton}"/>
                     <Button Content="Mappings"         Tag="Mappings"        Click="Navigation_Click" Style="{StaticResource NavButton}"/>
                     <Button Content="Users"            Tag="Users"           Click="Navigation_Click" Style="{StaticResource NavButton}"/>
                     <Button Content="Settings"         Tag="Settings"        Click="Navigation_Click" Style="{StaticResource NavButton}"/>

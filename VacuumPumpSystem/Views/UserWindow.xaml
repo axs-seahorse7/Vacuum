@@ -264,6 +264,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- LOGO (embedded resource, works offline) -->
@@ -286,8 +287,48 @@
                                Margin="0,2,0,0"/>
                 </StackPanel>
 
-                <!-- Connection info, on the same line as the title -->
+                <!-- Current model + Select Model button -->
                 <Border Grid.Column="2"
+                        Background="#F1F5F9"
+                        CornerRadius="10"
+                        Padding="14,6"
+                        Margin="0,0,12,0"
+                        VerticalAlignment="Center">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    MinWidth="120">
+                            <TextBlock Text="CURRENT MODEL"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       Foreground="#64748B"/>
+                            <TextBlock x:Name="SelectedModelText"
+                                       Text="No model selected"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="#111827"
+                                       Margin="0,2,0,0"/>
+                        </StackPanel>
+
+                        <Button Grid.Column="1"
+                                Content="SELECT MODEL"
+                                Style="{StaticResource PrimaryButton}"
+                                Width="120"
+                                Height="34"
+                                FontSize="12"
+                                Margin="16,0,0,0"
+                                VerticalAlignment="Center"
+                                Click="SelectModel_Click"/>
+                    </Grid>
+                </Border>
+
+                <!-- Connection info -->
+                <Border Grid.Column="3"
                         Background="#F1F5F9"
                         CornerRadius="14"
                         Padding="12,5"
@@ -297,12 +338,18 @@
                                Foreground="#475569"/>
                 </Border>
 
-                <!-- Kept (hidden) because the code-behind uses it to load the line, policy and machines -->
+                <!-- Hidden: kept because the code-behind uses them -->
                 <ComboBox x:Name="LineSelector"
                           Grid.Column="1"
                           Visibility="Collapsed"
                           DisplayMemberPath="LineName"
                           SelectionChanged="LineSelector_SelectionChanged"/>
+
+                <ComboBox x:Name="ModelSelector"
+                          Grid.Column="1"
+                          Visibility="Collapsed"
+                          DisplayMemberPath="ModelName"
+                          SelectionChanged="ModelSelector_SelectionChanged"/>
             </Grid>
         </Border>
 

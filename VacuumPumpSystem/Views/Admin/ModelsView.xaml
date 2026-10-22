@@ -1,0 +1,97 @@
+
+<UserControl x:Class="VacuumPumpSystem.Views.Admin.ModelsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock Text="Models"
+                       FontSize="28"
+                       FontWeight="Bold"
+                       Foreground="#111827"/>
+            <TextBlock Text="Manage model names and product serial prefixes."
+                       Margin="0,6,0,20"
+                       Foreground="#6B7280"/>
+        </StackPanel>
+
+        <Border Grid.Row="1"
+                Background="White"
+                BorderBrush="#E5E7EB"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="18"
+                Margin="0,0,0,18">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                    <TextBlock Text="Model Name" Margin="0,0,0,6"
+                               FontWeight="SemiBold"/>
+                    <TextBox x:Name="ModelNameTextBox"
+                             Height="38"
+                             Padding="8"
+                             VerticalContentAlignment="Center"
+                             ToolTip="Example: Model 24"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                    <TextBlock Text="Serial Prefix" Margin="0,0,0,6"
+                               FontWeight="SemiBold"/>
+                    <TextBox x:Name="SerialPrefixTextBox"
+                             Height="38"
+                             Padding="8"
+                             VerticalContentAlignment="Center"
+                             ToolTip="Example: 24"/>
+                </StackPanel>
+
+                <Button x:Name="SaveButton"
+                        Grid.Column="2"
+                        Content="SAVE MODEL"
+                        Height="38"
+                        MinWidth="110"
+                        Margin="0,24,8,0"
+                        Padding="12,0"
+                        Click="SaveButton_Click"/>
+
+                <Button Grid.Column="3"
+                        Content="CLEAR"
+                        Height="38"
+                        MinWidth="80"
+                        Margin="0,24,0,0"
+                        Padding="12,0"
+                        Click="ClearButton_Click"/>
+            </Grid>
+        </Border>
+
+        <DataGrid x:Name="ModelsGrid"
+                  Grid.Row="2"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  CanUserAddRows="False"
+                  SelectionMode="Single"
+                  SelectionChanged="ModelsGrid_SelectionChanged">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Model Name"
+                                    Binding="{Binding ModelName}"
+                                    Width="*"/>
+                <DataGridTextColumn Header="Serial Prefix"
+                                    Binding="{Binding SerialPrefix}"
+                                    Width="*"/>
+                <DataGridCheckBoxColumn Header="Active"
+                                        Binding="{Binding IsActive}"
+                                        Width="100"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>

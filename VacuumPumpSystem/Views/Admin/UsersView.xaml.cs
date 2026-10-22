@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using VacuumPumpSystem.Services;
+using VacuumPumpSystem.Models;
 
 namespace VacuumPumpSystem.Views.Admin;
 
@@ -11,14 +12,12 @@ public partial class UsersView : UserControl
     public UsersView()
     {
         InitializeComponent();
-
         Loaded += UsersView_Loaded;
     }
 
-    private async void UsersView_Loaded(
-        object sender,
-        RoutedEventArgs e)
+    private async void UsersView_Loaded(object sender, RoutedEventArgs e)
     {
+        Loaded -= UsersView_Loaded;
         await LoadUsersAsync();
     }
 
@@ -27,7 +26,6 @@ public partial class UsersView : UserControl
         try
         {
             var users = await _userService.GetUsersAsync();
-
             UsersGrid.ItemsSource = users;
         }
         catch (Exception ex)
@@ -40,9 +38,7 @@ public partial class UsersView : UserControl
         }
     }
 
-    private async void AddUser_Click(
-        object sender,
-        RoutedEventArgs e)
+    private async void AddUser_Click(object sender, RoutedEventArgs e)
     {
         try
         {
@@ -80,9 +76,7 @@ public partial class UsersView : UserControl
         }
     }
 
-    private async void ToggleUser_Click(
-        object sender,
-        RoutedEventArgs e)
+    private async void ToggleUser_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button button)
             return;

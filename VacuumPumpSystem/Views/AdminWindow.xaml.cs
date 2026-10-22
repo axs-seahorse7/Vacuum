@@ -20,15 +20,12 @@ public partial class AdminWindow : Window
     }
 
 
-    private void Navigation_Click(
-        object sender,
-        RoutedEventArgs e)
+    private void Navigation_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button button)
             return;
 
-        string? page =
-            button.Tag?.ToString();
+        string? page = button.Tag?.ToString();
 
         switch (page)
         {
@@ -50,6 +47,10 @@ public partial class AdminWindow : Window
 
             case "Products":
                 ShowProducts();
+                break;
+
+            case "Models":
+                ShowModels();
                 break;
 
             case "Mappings":
@@ -90,7 +91,7 @@ public partial class AdminWindow : Window
     }
 
 
- private void ShowDeviceDiscovery()
+    private void ShowDeviceDiscovery()
 {   
     if (_selectedLineId == null)
     {
@@ -120,6 +121,10 @@ public partial class AdminWindow : Window
             new ProductsView();
     }
 
+    private void ShowModels()
+    {
+        MainContent.Content = new ModelsView();
+    }
 
     private void ShowMappings()
     {
